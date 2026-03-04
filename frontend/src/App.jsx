@@ -647,7 +647,7 @@ export default function App() {
                 <div>
                   {/* ✅ only big logo, no text */}
                   <div className="flex items-center">
-                    <img src="/logo.png" alt="TurkoTrades" className="h-14" />
+                    <img src="/logo.png" alt="TurkoTrades" className="h-25" />
                   </div>
 
                   <div className="text-xs text-zinc-500">
