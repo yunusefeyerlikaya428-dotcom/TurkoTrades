@@ -69,83 +69,6 @@ const SESSION_OPTIONS = [
 ];
 
 /* =========================
-   ✅ FAKE LOGIN (LOCAL ONLY)
-   =========================
-   - Gerçek güvenlik değil, sadece "kapı"
-   - Şifre localStorage’da saklanmaz (sadece login flag)
-   - Şifreyi kodun içinde değiştiriyorsun
-*/
-
-const FAKE_PASSWORD = "1234"; // ✅ burayı istediğin şifre yap
-
-function FakeLogin({ onOk }) {
-  const [pw, setPw] = useState("");
-  const [err, setErr] = useState("");
-
-  const submit = (e) => {
-    e.preventDefault();
-    setErr("");
-    if (pw === FAKE_PASSWORD) {
-      localStorage.setItem("tt_fake_authed", "1");
-      onOk?.();
-      return;
-    }
-    setErr("Şifre yanlış.");
-  };
-
-  return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900/45 p-6 backdrop-blur">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-lg font-semibold">TurkoTrades</div>
-            <div className="text-xs text-zinc-500">Private access</div>
-          </div>
-          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-            Fake login
-          </span>
-        </div>
-
-        <form onSubmit={submit} className="mt-5 space-y-3">
-          <label className="block">
-            <div className="mb-1 text-xs text-zinc-400">Şifre</div>
-            <input
-              value={pw}
-              onChange={(e) => setPw(e.target.value)}
-              type="password"
-              className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
-              placeholder="••••"
-              autoFocus
-            />
-          </label>
-
-          {err ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-              {err}
-            </div>
-          ) : null}
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 hover:opacity-95"
-          >
-            Giriş
-          </button>
-
-          <div className="text-[11px] text-zinc-500">
-            Not: Bu gerçek güvenlik değil. Sadece “benim bilgisayarda açılmasın” kilidi.
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function fakeLogout() {
-  localStorage.removeItem("tt_fake_authed");
-}
-
-/* =========================
    ✅ App DIŞI BİLEŞENLER
    ========================= */
 
@@ -403,9 +326,6 @@ function NewTradeForm({
 }
 
 export default function App() {
-  // ✅ Fake auth gate
-  const [authed, setAuthed] = useState(() => localStorage.getItem("tt_fake_authed") === "1");
-
   const [trades, setTrades] = useState([]);
   const [range, setRange] = useState(30);
   const [symbolFilter, setSymbolFilter] = useState("ALL");
@@ -460,8 +380,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (authed) fetchTrades();
-  }, [authed]);
+    fetchTrades();
+  }, []);
 
   const symbols = useMemo(() => {
     const s = new Set(trades.map((t) => (t.symbol || "").toUpperCase()).filter(Boolean));
@@ -855,11 +775,6 @@ export default function App() {
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
 
-  // ✅ gate
-  if (!authed) {
-    return <FakeLogin onOk={() => setAuthed(true)} />;
-  }
-
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* ambient bg */}
@@ -923,7 +838,10 @@ export default function App() {
                   Net: <span className="text-zinc-300">{money(stats.total)}</span> • Balance:{" "}
                   <span className="text-zinc-300">{money(balance)}</span> • Return:{" "}
                   <span
-                    className={cn("font-medium", returnPct >= 0 ? "text-emerald-300" : "text-red-300")}
+                    className={cn(
+                      "font-medium",
+                      returnPct >= 0 ? "text-emerald-300" : "text-red-300"
+                    )}
                   >
                     {fmt(returnPct)}%
                   </span>{" "}
@@ -974,18 +892,6 @@ export default function App() {
                 >
                   Yenile
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    fakeLogout();
-                    setAuthed(false);
-                  }}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
-                  title="Fake logout"
-                >
-                  Çıkış
-                </button>
               </div>
             </div>
 
@@ -1019,7 +925,144 @@ export default function App() {
                   />
                 </div>
 
-                {/* NewTrade + RecentTrades */}
+                {/* ✅ Account Growth + Monthly Heatmap: ÜSTE ALINDI */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card className="h-full">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-zinc-200">Account Growth</div>
+                        <div className="text-xs text-zinc-500">Starting balance → büyüme</div>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
+                        {equitySeries.length} pts
+                      </span>
+                    </div>
+
+                    <div className="mt-3 h-[320px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={equitySeries}>
+                          <defs>
+                            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
+                              <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis
+                            dataKey="date"
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(v) => [money(v), "Balance"]}
+                            contentStyle={{
+                              background: "rgba(9,9,11,0.92)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              borderRadius: 14,
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="equity"
+                            stroke="rgba(168,85,247,0.95)"
+                            strokeWidth={2.6}
+                            fill="url(#eqFill)"
+                            dot={false}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  <Heatmap
+                    big
+                    monthTitle={monthTitle}
+                    calendar={calendar}
+                    monthCursor={monthCursor}
+                    setMonthCursor={setMonthCursor}
+                  />
+                </div>
+
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {/* Best symbol */}
+                  <Card>
+                    <div className="text-sm text-zinc-200">Top Symbol (PnL)</div>
+                    <div className="mt-3">
+                      {bestSymbol ? (
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="text-lg font-semibold">{bestSymbol.symbol}</div>
+                            <div
+                              className={cn(
+                                "text-sm font-semibold",
+                                bestSymbol.pnl >= 0 ? "text-emerald-200" : "text-red-200"
+                              )}
+                            >
+                              {money(bestSymbol.pnl)}
+                            </div>
+                          </div>
+                          <div className="mt-1 text-xs text-zinc-500">
+                            {bestSymbol.count} trade • WR {fmt(bestSymbol.winRate)}%
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-zinc-500">Henüz veri yok.</div>
+                      )}
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      {symbolPerf.slice(0, 5).map((s) => (
+                        <div
+                          key={s.symbol}
+                          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs"
+                        >
+                          <span className="text-zinc-200">{s.symbol}</span>
+                          <span className={cn(s.pnl >= 0 ? "text-emerald-200" : "text-red-200")}>
+                            {money(s.pnl)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+
+                  {/* Day cards */}
+                  <Card className="lg:col-span-2">
+                    <div className="text-sm text-zinc-200">Gün Bazlı Analiz</div>
+                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      <DayCard
+                        title="Best performing day"
+                        value={dayCards?.bestPnL?.day || "—"}
+                        meta={`${dayCards?.bestPnL?.count || 0} trades`}
+                        badge={dayCards?.bestPnL ? money(dayCards.bestPnL.pnl) : "$0.00"}
+                        tone="good"
+                      />
+                      <DayCard
+                        title="Least performing day"
+                        value={dayCards?.worstPnL?.day || "—"}
+                        meta={`${dayCards?.worstPnL?.count || 0} trades`}
+                        badge={dayCards?.worstPnL ? money(dayCards.worstPnL.pnl) : "$0.00"}
+                        tone="bad"
+                      />
+                      <DayCard
+                        title="Most active day"
+                        value={dayCards?.mostActive?.day || "—"}
+                        meta={`${dayCards?.mostActive?.count || 0} trades`}
+                        badge="Active"
+                        tone="neutral"
+                      />
+                      <DayCard
+                        title="Best win rate day"
+                        value={dayCards?.bestWR?.day || "—"}
+                        meta={`${dayCards?.bestWR?.count || 0} trades`}
+                        badge={`${fmt(dayCards?.bestWR?.winRate || 0)}%`}
+                        tone="good"
+                      />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* ✅ NewTrade + RecentTrades: EN ALTA İNDİRİLDİ */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <NewTradeForm
                     subtitle="Dashboard quick add"
@@ -1092,61 +1135,6 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* Account Growth + Monthly Heatmap */}
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <Card className="h-full">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Account Growth</div>
-                        <div className="text-xs text-zinc-500">Starting balance → büyüme</div>
-                      </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        {equitySeries.length} pts
-                      </span>
-                    </div>
-
-                    <div className="mt-3 h-[320px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={equitySeries}>
-                          <defs>
-                            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
-                              <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "Balance"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="equity"
-                            stroke="rgba(168,85,247,0.95)"
-                            strokeWidth={2.6}
-                            fill="url(#eqFill)"
-                            dot={false}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-
-                  <Heatmap
-                    big
-                    monthTitle={monthTitle}
-                    calendar={calendar}
-                    monthCursor={monthCursor}
-                    setMonthCursor={setMonthCursor}
-                  />
-                </div>
-
                 <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Dashboard • Supabase</div>
               </>
             )}
@@ -1199,7 +1187,11 @@ export default function App() {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <XAxis
+                            dataKey="date"
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                          />
                           <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                           <Tooltip
                             formatter={(v) => [money(v), "Drawdown"]}
@@ -1414,9 +1406,7 @@ export default function App() {
                   </Card>
                 </div>
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
-                  Trades • satıra tıkla → sağ panel
-                </div>
+                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Trades • satıra tıkla → sağ panel</div>
               </>
             )}
 
@@ -1433,7 +1423,9 @@ export default function App() {
                   />
                 </div>
 
+                {/* ✅ Calendar’a 1-2-3 grafik */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {/* 1) Daily Net PnL */}
                   <Card>
                     <div className="text-sm text-zinc-200">Daily Net PnL</div>
                     <div className="mt-3 h-[240px] w-full">
@@ -1456,6 +1448,7 @@ export default function App() {
                     </div>
                   </Card>
 
+                  {/* 2) Daily Trade Count */}
                   <Card>
                     <div className="text-sm text-zinc-200">Daily Trade Count</div>
                     <div className="mt-3 h-[240px] w-full">
@@ -1463,7 +1456,11 @@ export default function App() {
                         <BarChart data={calendarCharts.daily}>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                           <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} allowDecimals={false} />
+                          <YAxis
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                            allowDecimals={false}
+                          />
                           <Tooltip
                             formatter={(v) => [v, "Trades"]}
                             contentStyle={{
@@ -1478,6 +1475,7 @@ export default function App() {
                     </div>
                   </Card>
 
+                  {/* 3) Cumulative PnL (MTD) */}
                   <Card>
                     <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
                     <div className="mt-3 h-[240px] w-full">
@@ -1494,13 +1492,7 @@ export default function App() {
                               borderRadius: 14,
                             }}
                           />
-                          <Line
-                            type="monotone"
-                            dataKey="cumPnL"
-                            dot={false}
-                            stroke="rgba(168,85,247,0.95)"
-                            strokeWidth={2.2}
-                          />
+                          <Line type="monotone" dataKey="cumPnL" dot={false} stroke="rgba(168,85,247,0.95)" strokeWidth={2.2} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
@@ -1722,6 +1714,26 @@ function Kpi({ title, value, sub, tone }) {
         <div className={cn("rounded-full border px-2 py-1 text-[10px]", badge)}>{sub}</div>
       </div>
       <div className="mt-2 text-2xl font-semibold tracking-tight">{value}</div>
+    </div>
+  );
+}
+
+function DayCard({ title, value, meta, badge, tone }) {
+  const t =
+    tone === "good"
+      ? "text-emerald-200 bg-emerald-500/10 border-emerald-500/20"
+      : tone === "bad"
+      ? "text-red-200 bg-red-500/10 border-red-500/20"
+      : "text-zinc-200 bg-white/5 border-white/10";
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <div className="text-[11px] text-zinc-400">{title}</div>
+      <div className="mt-1 text-lg font-semibold text-zinc-100">{value}</div>
+      <div className="mt-1 flex items-center justify-between">
+        <div className="text-xs text-zinc-500">{meta}</div>
+        <div className={cn("rounded-full border px-2 py-1 text-[11px] font-semibold", t)}>{badge}</div>
+      </div>
     </div>
   );
 }
