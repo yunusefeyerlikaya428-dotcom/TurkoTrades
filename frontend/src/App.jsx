@@ -925,80 +925,7 @@ export default function App() {
                   />
                 </div>
 
-                {/* ✅ ÜSTTEKİ 2 ↔ ALTTAKİ 2 YER DEĞİŞTİ: önce NewTrade + RecentTrades */}
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <NewTradeForm
-                    subtitle="Dashboard quick add"
-                    form={form}
-                    setForm={setForm}
-                    handleSubmit={handleSubmit}
-                    sessionOptions={SESSION_OPTIONS}
-                    pointValue={pointValue}
-                  />
-
-                  <Card className="lg:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Recent Trades</div>
-                        <div className="text-xs text-zinc-500">Son 15 trade (detaylı)</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-white/5 text-zinc-300">
-                          <tr>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">Symbol</th>
-                            <th className="px-4 py-3">Session</th>
-                            <th className="px-4 py-3">Risk</th>
-                            <th className="px-4 py-3">PnL</th>
-                            <th className="px-4 py-3">RR</th>
-                            <th className="px-4 py-3">Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {filtered
-                            .slice(-15)
-                            .slice()
-                            .reverse()
-                            .map((t) => (
-                              <tr
-                                key={t.id}
-                                className="cursor-pointer hover:bg-white/5"
-                                onClick={() => openTrade(t)}
-                              >
-                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
-                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
-                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
-                                    ? `${t.risk_pct}%`
-                                    : "—"}
-                                </td>
-                                <td
-                                  className={cn(
-                                    "px-4 py-3 font-medium",
-                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
-                                  )}
-                                >
-                                  {money(t.pnl)}
-                                </td>
-                                <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
-                                <td className="px-4 py-3">
-                                  <div className="max-w-[420px] truncate text-zinc-300">
-                                    {(t.notes || "").trim() || "—"}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-
-                {/* ✅ Account Growth + Monthly Heatmap: yan yana, ortalı, eş genişlik */}
+                {/* ✅ Account Growth + Monthly Heatmap: ÜSTE ALINDI */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <Card className="h-full">
                     <div className="flex items-center justify-between">
@@ -1131,6 +1058,79 @@ export default function App() {
                         badge={`${fmt(dayCards?.bestWR?.winRate || 0)}%`}
                         tone="good"
                       />
+                    </div>
+                  </Card>
+                </div>
+
+                {/* ✅ NewTrade + RecentTrades: EN ALTA İNDİRİLDİ */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  <NewTradeForm
+                    subtitle="Dashboard quick add"
+                    form={form}
+                    setForm={setForm}
+                    handleSubmit={handleSubmit}
+                    sessionOptions={SESSION_OPTIONS}
+                    pointValue={pointValue}
+                  />
+
+                  <Card className="lg:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-zinc-200">Recent Trades</div>
+                        <div className="text-xs text-zinc-500">Son 15 trade (detaylı)</div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-white/5 text-zinc-300">
+                          <tr>
+                            <th className="px-4 py-3">Date</th>
+                            <th className="px-4 py-3">Symbol</th>
+                            <th className="px-4 py-3">Session</th>
+                            <th className="px-4 py-3">Risk</th>
+                            <th className="px-4 py-3">PnL</th>
+                            <th className="px-4 py-3">RR</th>
+                            <th className="px-4 py-3">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                          {filtered
+                            .slice(-15)
+                            .slice()
+                            .reverse()
+                            .map((t) => (
+                              <tr
+                                key={t.id}
+                                className="cursor-pointer hover:bg-white/5"
+                                onClick={() => openTrade(t)}
+                              >
+                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
+                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
+                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
+                                <td className="px-4 py-3 text-zinc-300">
+                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
+                                    ? `${t.risk_pct}%`
+                                    : "—"}
+                                </td>
+                                <td
+                                  className={cn(
+                                    "px-4 py-3 font-medium",
+                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
+                                  )}
+                                >
+                                  {money(t.pnl)}
+                                </td>
+                                <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
+                                <td className="px-4 py-3">
+                                  <div className="max-w-[420px] truncate text-zinc-300">
+                                    {(t.notes || "").trim() || "—"}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
                     </div>
                   </Card>
                 </div>
