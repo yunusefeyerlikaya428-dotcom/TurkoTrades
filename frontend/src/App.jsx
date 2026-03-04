@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "./supabase";
 import {
   LineChart,
@@ -13,6 +13,7 @@ import {
   AreaChart,
   Area,
   ReferenceLine,
+  Cell,
 } from "recharts";
 
 import { DayPicker } from "react-day-picker";
@@ -61,6 +62,15 @@ function ymd(d) {
 }
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
+}
+
+function formatTRDate(ymdStr) {
+  // "2026-03-04" -> "04.03.2026"
+  if (!ymdStr || typeof ymdStr !== "string") return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdStr);
+  if (!m) return ymdStr;
+  const [, y, mo, d] = m;
+  return `${d}.${mo}.${y}`;
 }
 
 const SESSION_OPTIONS = [
@@ -128,7 +138,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
       </div>
 
       {/* Header days */}
-      <div className="mt-4 grid grid-cols-7 gap-2">
+      <div className={cn("mt-4 grid grid-cols-7", big ? "gap-[6px]" : "gap-2")}>
         {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
           <div key={d} className="text-center text-[11px] text-zinc-500">
             {d}
@@ -136,11 +146,16 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         ))}
       </div>
 
-      {/* Cells (KARE + KAVİSLİ) */}
-      <div className={cn("mt-2 grid grid-cols-7 gap-2", big ? "text-xs" : "text-xs")}>
+      {/* Cells (KARE + HAFİF KAVİS + DAHA KÜÇÜK) */}
+      <div className={cn("mt-2 grid grid-cols-7", big ? "gap-[6px] text-xs" : "gap-2 text-xs")}>
         {calendar.map((c, idx) => {
           if (!c)
-            return <div key={idx} className="aspect-square w-full rounded-2xl bg-transparent" />;
+            return (
+              <div
+                key={idx}
+                className={cn("aspect-square w-full bg-transparent", big ? "rounded-xl" : "rounded-2xl")}
+              />
+            );
 
           const pnl = c.pnl;
           const intensity = clamp(Math.abs(pnl) / 120, 0, 1);
@@ -156,28 +171,27 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
               key={c.key}
               title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
               className={cn(
-                "aspect-square w-full rounded-2xl border border-white/10",
-                big ? "p-3" : "p-2",
-                "hover:border-white/20 transition"
+                "aspect-square w-full border border-white/10 hover:border-white/20 transition",
+                big ? "rounded-xl p-2" : "rounded-2xl p-2"
               )}
               style={{ background: bg }}
             >
               <div className="flex items-start justify-between gap-2">
-                <span className={cn("font-semibold text-zinc-100", big ? "text-base" : "text-sm")}>
+                <span className={cn("font-semibold text-zinc-100", big ? "text-sm" : "text-sm")}>
                   {c.d}
                 </span>
 
                 <div className="flex flex-col items-end leading-tight">
                   <span
                     className={cn(
-                      big ? "text-[12px] font-semibold" : "text-[11px] font-semibold",
+                      big ? "text-[11px] font-semibold" : "text-[11px] font-semibold",
                       pnl > 0 ? "text-emerald-200" : pnl < 0 ? "text-red-200" : "text-zinc-300"
                     )}
                   >
                     {compactMoneyUSD(pnl)}
                   </span>
 
-                  <span className={cn("mt-1 text-zinc-400", big ? "text-[11px]" : "text-[10px]")}>
+                  <span className={cn("mt-1 text-zinc-400", big ? "text-[10px]" : "text-[10px]")}>
                     {c.count ? `${c.count} trade` : ""}
                   </span>
                 </div>
@@ -198,6 +212,19 @@ function NewTradeForm({
   sessionOptions,
   pointValue,
 }) {
+  // ✅ popup daypicker state (tarayıcı date picker yok)
+  const [dateOpen, setDateOpen] = useState(false);
+  const dateRef = useRef(null);
+
+  useEffect(() => {
+    if (!dateOpen) return;
+    const onDown = (e) => {
+      if (dateRef.current && !dateRef.current.contains(e.target)) setDateOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [dateOpen]);
+
   return (
     <Card className="lg:col-span-1">
       <div className="flex items-center justify-between">
@@ -245,27 +272,65 @@ function NewTradeForm({
             step="0.1"
             min="0"
           />
-          <Input
-            label="Date"
-            value={form.date}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-            type="text"
-          />
+
+          {/* ✅ Modern Date Picker (popup) */}
+          <div className="relative block" ref={dateRef}>
+            <div className="mb-1 text-xs text-zinc-400">Date</div>
+
+            <button
+              type="button"
+              className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-left text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500/40 hover:border-white/20"
+              onClick={() => setDateOpen((v) => !v)}
+            >
+              <span className={cn(form.date ? "text-zinc-100" : "text-zinc-600")}>
+                {form.date ? formatTRDate(form.date) : "gg.aa.yyyy"}
+              </span>
+              <span className="float-right opacity-70">📅</span>
+            </button>
+
+            {dateOpen && (
+              <div className="absolute z-50 mt-2 rounded-2xl border border-white/10 bg-zinc-900/95 p-2 shadow-xl backdrop-blur">
+                <div className="flex items-center justify-between px-2 pb-2">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10"
+                    onClick={() => {
+                      const today = new Date();
+                      setForm({ ...form, date: ymd(today) });
+                      setDateOpen(false);
+                    }}
+                  >
+                    Bugün
+                  </button>
+
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10"
+                    onClick={() => {
+                      setForm({ ...form, date: "" });
+                      setDateOpen(false);
+                    }}
+                  >
+                    Temizle
+                  </button>
+                </div>
+
+                <DayPicker
+                  mode="single"
+                  selected={form.date ? new Date(form.date) : undefined}
+                  onSelect={(date) => {
+                    setForm({
+                      ...form,
+                      date: date ? date.toISOString().slice(0, 10) : "",
+                    });
+                    setDateOpen(false);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="mt-2 bg-zinc-900 p-2 rounded-lg border border-white/10">
-        <DayPicker
-        mode="single"
-        selected={form.date ? new Date(form.date) : undefined}
-        onSelect={(date) =>
-        setForm({
-        ...form,
-        date: date ? date.toISOString().slice(0, 10) : "",
-        })
-        }
-        />
-        </div> 
-        
         <Select
           label="Session"
           value={form.session}
@@ -296,7 +361,7 @@ function NewTradeForm({
             label="Manual PnL ($)"
             value={form.pnlManual}
             onChange={(e) => setForm({ ...form, pnlManual: e.target.value })}
-            placeholder="Örn: 120 / -55"
+            placeholder="120 / -55"
             type="number"
             step="0.01"
           />
@@ -309,19 +374,19 @@ function NewTradeForm({
         </div>
 
         <Input
-          label="Screenshot URL (opsiyonel)"
+          label="Screenshot URL (optional)"
           value={form.screenshot}
           onChange={(e) => setForm({ ...form, screenshot: e.target.value })}
           placeholder="https://..."
         />
 
         <label className="block">
-          <div className="mb-1 text-xs text-zinc-400">Notlar</div>
+          <div className="mb-1 text-xs text-zinc-400">Trade Notes</div>
           <textarea
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             rows={5}
-            placeholder="FVG / OB / bias / psikoloji..."
+            placeholder="Trade notes"
             className="w-full resize-none rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-purple-500/40"
           />
         </label>
@@ -330,14 +395,99 @@ function NewTradeForm({
           type="submit"
           className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 hover:opacity-95"
         >
-          Trade Ekle
+          Add Trade
         </button>
       </form>
 
-      <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-        Not: Manual PnL girersen o kaydedilir. Girmezsen PnL = (Exit-Entry) * PointValue.
-      </div>
+      {/* ✅ 1) Manuel PnL açıklaması: BOŞ (kaldırıldı) */}
     </Card>
+  );
+}
+
+/* =========================
+   ✅ CUSTOM DROPDOWN (TÜM LİSTELER)
+   ========================= */
+function Dropdown({ value, onChange, options, className, buttonClassName, menuClassName }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const selected = options.find((o) => String(o.v) === String(value)) || options[0];
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const fireChange = (v) => {
+    if (typeof onChange === "function") onChange({ target: { value: v } });
+  };
+
+  return (
+    <div ref={ref} className={cn("relative", className)}>
+      <button
+        type="button"
+        onClick={() => setOpen((x) => !x)}
+        className={cn(
+          "w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none hover:border-white/20 focus:ring-2 focus:ring-purple-500/40",
+          "flex items-center justify-between gap-3",
+          buttonClassName
+        )}
+      >
+        <span className="truncate">{selected?.t ?? "Select"}</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          className={cn("opacity-70 transition", open ? "rotate-180" : "")}
+          fill="none"
+        >
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          className={cn(
+            "absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 shadow-xl backdrop-blur",
+            menuClassName
+          )}
+        >
+          <div className="max-h-72 overflow-auto p-1">
+            {options.map((o) => {
+              const active = String(o.v) === String(value);
+              return (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => {
+                    fireChange(o.v);
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
+                    active
+                      ? "bg-white/10 text-zinc-100"
+                      : "text-zinc-200 hover:bg-white/5"
+                  )}
+                >
+                  {o.t}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -791,6 +941,15 @@ export default function App() {
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
 
+  const rangeOptions = [
+    { v: 7, t: "Son 7 gün" },
+    { v: 30, t: "Son 30 gün" },
+    { v: 90, t: "Son 90 gün" },
+    { v: 365, t: "Son 1 yıl" },
+  ];
+
+  const symbolOptions = symbols.map((s) => ({ v: s, t: s === "ALL" ? "All symbols" : s }));
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
       {/* ambient bg */}
@@ -878,35 +1037,28 @@ export default function App() {
                   <span className="text-xs text-zinc-500">Start</span>
                 </div>
 
-                <select
+                {/* ✅ MODERN DROPDOWN (Symbol) */}
+                <Dropdown
                   value={symbolFilter}
                   onChange={(e) => setSymbolFilter(e.target.value)}
-                  className="rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
-                >
-                  {symbols.map((s) => (
-                    <option key={s} value={s}>
-                      {s === "ALL" ? "All symbols" : s}
-                    </option>
-                  ))}
-                </select>
+                  options={symbolOptions}
+                  className="w-[160px]"
+                />
 
-                <select
+                {/* ✅ MODERN DROPDOWN (Range) */}
+                <Dropdown
                   value={range}
                   onChange={(e) => setRange(Number(e.target.value))}
-                  className="rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/40"
-                >
-                  <option value={7}>Son 7 gün</option>
-                  <option value={30}>Son 30 gün</option>
-                  <option value={90}>Son 90 gün</option>
-                  <option value={365}>Son 1 yıl</option>
-                </select>
+                  options={rangeOptions}
+                  className="w-[140px]"
+                />
 
                 <button
                   type="button"
                   onClick={fetchTrades}
                   className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
                 >
-                  Yenile
+                  Refresh
                 </button>
               </div>
             </div>
@@ -931,7 +1083,7 @@ export default function App() {
                     title="Profit Factor"
                     value={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
                     tone={stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"}
-                    sub="brüt kâr / brüt zarar"
+                    sub="Gross profit / gross loss"
                   />
                   <Kpi
                     title="Avg RR"
@@ -941,20 +1093,20 @@ export default function App() {
                   />
                 </div>
 
-                {/* ✅ Account Growth + Monthly Heatmap: ÜSTE ALINDI */}
+                {/* ✅ Account Growth (alt boşluk doldu: chart + stats) + Monthly Heatmap */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <Card className="h-full">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Account Growth</div>
-                        <div className="text-xs text-zinc-500">Starting balance → büyüme</div>
+                        <div className="text-xs text-zinc-500">{/* boş */}</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        {equitySeries.length} pts
+                        {fmt(returnPct)}%
                       </span>
                     </div>
 
-                    <div className="mt-3 h-[320px] w-full">
+                    <div className="mt-3 h-[260px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={equitySeries}>
                           <defs>
@@ -988,6 +1140,22 @@ export default function App() {
                           />
                         </AreaChart>
                       </ResponsiveContainer>
+                    </div>
+
+                    {/* ✅ Alt boşluğu dolduran stats */}
+                    <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
+                      <MiniKpi label="Net Growth" value={money(stats.total)} tone={stats.total >= 0 ? "good" : "bad"} />
+                      <MiniKpi
+                        label="Return"
+                        value={`${fmt(returnPct)}%`}
+                        tone={returnPct >= 0 ? "good" : "bad"}
+                      />
+                      <MiniKpi
+                        label="Max DD"
+                        value={money(drawdownStats.maxDD)}
+                        tone={drawdownStats.maxDD < 0 ? "bad" : "neutral"}
+                      />
+                      <MiniKpi label="Trades" value={String(stats.count)} tone="neutral" />
                     </div>
                   </Card>
 
@@ -1023,7 +1191,7 @@ export default function App() {
                           </div>
                         </div>
                       ) : (
-                        <div className="text-sm text-zinc-500">Henüz veri yok.</div>
+                        <div className="text-sm text-zinc-500">No data.</div>
                       )}
                     </div>
 
@@ -1044,7 +1212,7 @@ export default function App() {
 
                   {/* Day cards */}
                   <Card className="lg:col-span-2">
-                    <div className="text-sm text-zinc-200">Gün Bazlı Analiz</div>
+                    <div className="text-sm text-zinc-200">Day Analysis</div>
                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                       <DayCard
                         title="Best performing day"
@@ -1078,7 +1246,7 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* ✅ NewTrade + RecentTrades: EN ALTA İNDİRİLDİ */}
+                {/* ✅ NewTrade + RecentTrades */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <NewTradeForm
                     subtitle="Dashboard quick add"
@@ -1093,7 +1261,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Recent Trades</div>
-                        <div className="text-xs text-zinc-500">Son 15 trade (detaylı)</div>
+                        <div className="text-xs text-zinc-500">Last 15 entries</div>
                       </div>
                     </div>
 
@@ -1186,7 +1354,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Drawdown</div>
-                        <div className="text-xs text-zinc-500">Peak-to-trough (kümülatif)</div>
+                        <div className="text-xs text-zinc-500">Peak-to-trough</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         {drawdownSeries.length} pts
@@ -1278,7 +1446,7 @@ export default function App() {
                           </div>
                         ))
                       ) : (
-                        <div className="text-sm text-zinc-500">Henüz veri yok.</div>
+                        <div className="text-sm text-zinc-500">No data.</div>
                       )}
                     </div>
 
@@ -1304,7 +1472,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Trades</div>
-                        <div className="text-xs text-zinc-500">Satıra tıkla → detay sağdan açılsın</div>
+                        <div className="text-xs text-zinc-500">Click row → right panel</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         Table
@@ -1395,7 +1563,7 @@ export default function App() {
                                       className="text-purple-300 hover:underline"
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      Aç ↗
+                                      Open ↗
                                     </a>
                                   ) : (
                                     <span className="text-zinc-500">—</span>
@@ -1411,7 +1579,7 @@ export default function App() {
                                       handleDelete(t.id);
                                     }}
                                   >
-                                    Sil
+                                    Delete
                                   </button>
                                 </td>
                               </tr>
@@ -1422,14 +1590,17 @@ export default function App() {
                   </Card>
                 </div>
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Trades • satıra tıkla → sağ panel</div>
+                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
+                  Trades • right panel
+                </div>
               </>
             )}
 
             {/* CALENDAR */}
             {activeNav === "calendar" && (
               <>
-                <div className="mt-5">
+                {/* ✅ Heatmap + Charts YAN YANA (LG) */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
                   <Heatmap
                     big
                     monthTitle={monthTitle}
@@ -1437,85 +1608,124 @@ export default function App() {
                     monthCursor={monthCursor}
                     setMonthCursor={setMonthCursor}
                   />
+
+                  <div className="space-y-4">
+                    {/* 1) Daily Net PnL (renkli bar + zero line) */}
+                    <Card>
+                      <div className="text-sm text-zinc-200">Daily Net PnL</div>
+                      <div className="mt-3 h-[220px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={calendarCharts.daily}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                            <XAxis
+                              dataKey="day"
+                              stroke="rgba(255,255,255,0.45)"
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
+                            <Tooltip
+                              formatter={(v) => [money(v), "PnL"]}
+                              contentStyle={{
+                                background: "rgba(9,9,11,0.92)",
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                borderRadius: 14,
+                              }}
+                            />
+                            <Bar dataKey="pnl">
+                              {(calendarCharts.daily || []).map((x, i) => (
+                                <Cell
+                                  key={i}
+                                  fill={
+                                    x.pnl > 0
+                                      ? "rgba(34,197,94,0.65)"
+                                      : x.pnl < 0
+                                      ? "rgba(239,68,68,0.65)"
+                                      : "rgba(255,255,255,0.18)"
+                                  }
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+
+                    {/* 2) Daily Trade Count */}
+                    <Card>
+                      <div className="text-sm text-zinc-200">Daily Trade Count</div>
+                      <div className="mt-3 h-[220px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={calendarCharts.daily}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                            <XAxis
+                              dataKey="day"
+                              stroke="rgba(255,255,255,0.45)"
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis
+                              stroke="rgba(255,255,255,0.45)"
+                              tick={{ fontSize: 12 }}
+                              allowDecimals={false}
+                            />
+                            <Tooltip
+                              formatter={(v) => [v, "Trades"]}
+                              contentStyle={{
+                                background: "rgba(9,9,11,0.92)",
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                borderRadius: 14,
+                              }}
+                            />
+                            <Bar dataKey="count" fill="rgba(168,85,247,0.55)" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+
+                    {/* 3) Cumulative PnL (MTD) (area fill) */}
+                    <Card>
+                      <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
+                      <div className="mt-3 h-[220px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={calendarCharts.cumulative}>
+                            <defs>
+                              <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
+                                <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                            <XAxis
+                              dataKey="day"
+                              stroke="rgba(255,255,255,0.45)"
+                              tick={{ fontSize: 12 }}
+                            />
+                            <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
+                            <Tooltip
+                              formatter={(v) => [money(v), "Cum PnL"]}
+                              contentStyle={{
+                                background: "rgba(9,9,11,0.92)",
+                                border: "1px solid rgba(255,255,255,0.12)",
+                                borderRadius: 14,
+                              }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="cumPnL"
+                              stroke="rgba(168,85,247,0.95)"
+                              strokeWidth={2.2}
+                              fill="url(#cumFill)"
+                              dot={false}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </Card>
+                  </div>
                 </div>
 
-                {/* ✅ Calendar’a 1-2-3 grafik */}
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  {/* 1) Daily Net PnL */}
-                  <Card>
-                    <div className="text-sm text-zinc-200">Daily Net PnL</div>
-                    <div className="mt-3 h-[240px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={calendarCharts.daily}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "PnL"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Bar dataKey="pnl" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-
-                  {/* 2) Daily Trade Count */}
-                  <Card>
-                    <div className="text-sm text-zinc-200">Daily Trade Count</div>
-                    <div className="mt-3 h-[240px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={calendarCharts.daily}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis
-                            stroke="rgba(255,255,255,0.45)"
-                            tick={{ fontSize: 12 }}
-                            allowDecimals={false}
-                          />
-                          <Tooltip
-                            formatter={(v) => [v, "Trades"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Bar dataKey="count" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-
-                  {/* 3) Cumulative PnL (MTD) */}
-                  <Card>
-                    <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
-                    <div className="mt-3 h-[240px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={calendarCharts.cumulative}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "Cum PnL"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Line type="monotone" dataKey="cumPnL" dot={false} stroke="rgba(168,85,247,0.95)" strokeWidth={2.2} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Calendar • aylık performans</div>
+                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Calendar • monthly view</div>
               </>
             )}
 
@@ -1547,7 +1757,7 @@ export default function App() {
                           className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none"
                         />
                         <div className="mt-1 text-[11px] text-zinc-500">
-                          Manual PnL girmezsen: PnL = (Exit-Entry)*PointValue
+                          Auto PnL: (Exit-Entry) × Point Value
                         </div>
                       </label>
 
@@ -1560,9 +1770,7 @@ export default function App() {
 
                   <Card>
                     <div className="text-sm text-zinc-200">Danger Zone</div>
-                    <div className="mt-4 text-xs text-zinc-400">
-                      (İstersen buraya export/import, reset DB, seed demo data ekleriz.)
-                    </div>
+                    <div className="mt-4 text-xs text-zinc-400">{/* boş */}</div>
                   </Card>
                 </div>
 
@@ -1593,7 +1801,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="text-sm font-medium text-zinc-200">Trade Detail</div>
-                <div className="text-xs text-zinc-500">Uzun notlar burada kalsın, tablo temiz kalsın.</div>
+                <div className="text-xs text-zinc-500">{/* boş */}</div>
               </div>
 
               <button
@@ -1601,13 +1809,13 @@ export default function App() {
                 className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
                 onClick={closeDrawer}
               >
-                Kapat
+                Close
               </button>
             </div>
 
             <div className="flex-1 overflow-auto p-5">
               {!selectedTrade ? (
-                <div className="text-sm text-zinc-400">Seçim yok.</div>
+                <div className="text-sm text-zinc-400">No selection.</div>
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -1659,7 +1867,7 @@ export default function App() {
                           rel="noreferrer"
                           className="text-xs text-purple-300 hover:underline"
                         >
-                          Linki aç ↗
+                          Open ↗
                         </a>
                       ) : null}
                     </div>
@@ -1674,9 +1882,6 @@ export default function App() {
                             e.currentTarget.style.display = "none";
                           }}
                         />
-                        <div className="p-3 text-xs text-zinc-400">
-                          Eğer görüntü görünmezse sorun değil — link yine çalışır.
-                        </div>
                       </div>
                     ) : (
                       <div className="mt-2 text-sm text-zinc-500">—</div>
@@ -1689,16 +1894,14 @@ export default function App() {
                       className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/20"
                       onClick={() => handleDelete(selectedTrade.id)}
                     >
-                      Bu trade’i sil
+                      Delete trade
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500">
-              Panel sağdan kayar. Tablo “kısa”, detay “uzun”.
-            </div>
+            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500">{/* boş */}</div>
           </div>
         </div>
       </div>
@@ -1711,6 +1914,22 @@ function Card({ className, children }) {
   return (
     <div className={cn("rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur", className)}>
       {children}
+    </div>
+  );
+}
+
+function MiniKpi({ label, value, tone = "neutral" }) {
+  const t =
+    tone === "good"
+      ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+      : tone === "bad"
+      ? "border-red-500/20 bg-red-500/10 text-red-200"
+      : "border-white/10 bg-white/5 text-zinc-200";
+
+  return (
+    <div className={cn("rounded-xl border p-3", t)}>
+      <div className="text-[11px] text-zinc-400">{label}</div>
+      <div className="mt-1 text-sm font-semibold">{value}</div>
     </div>
   );
 }
@@ -1766,20 +1985,12 @@ function Input({ label, ...props }) {
   );
 }
 
-function Select({ label, options, ...props }) {
+/* ✅ Select: artık custom dropdown */
+function Select({ label, options, value, onChange, ...props }) {
   return (
     <label className="block">
       <div className="mb-1 text-xs text-zinc-400">{label}</div>
-      <select
-        {...props}
-        className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500/40"
-      >
-        {options.map((o) => (
-          <option key={o.v} value={o.v}>
-            {o.t}
-          </option>
-        ))}
-      </select>
+      <Dropdown value={value} onChange={onChange} options={options} {...props} />
     </label>
   );
 }
