@@ -698,9 +698,12 @@ export default function App() {
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-pink-500/10" />
                 <div>
-                  <div className="text-sm font-medium text-zinc-200">
-                    Trading Journal
-                  </div>
+                  <div className="flex items-center gap-2">
+  <img src="/logo.png" alt="TurkoTrades" className="h-6" />
+  <div className="text-sm font-medium text-zinc-200">
+    TurkoTrades
+  </div>
+</div>
                   <div className="text-xs text-zinc-500">
                     Net:{" "}
                     <span className="text-zinc-300">{money(stats.total)}</span>{" "}
