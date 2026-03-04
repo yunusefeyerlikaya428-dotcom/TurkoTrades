@@ -15,6 +15,9 @@ import {
   ReferenceLine,
 } from "recharts";
 
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+
 function cn(...a) {
   return a.filter(Boolean).join(" ");
 }
@@ -246,10 +249,23 @@ function NewTradeForm({
             label="Date"
             value={form.date}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
-            type="date"
+            type="text"
           />
         </div>
 
+        <div className="mt-2 bg-zinc-900 p-2 rounded-lg border border-white/10">
+        <DayPicker
+        mode="single"
+        selected={form.date ? new Date(form.date) : undefined}
+        onSelect={(date) =>
+        setForm({
+        ...form,
+        date: date ? date.toISOString().slice(0, 10) : "",
+        })
+        }
+        />
+        </div> 
+        
         <Select
           label="Session"
           value={form.session}
