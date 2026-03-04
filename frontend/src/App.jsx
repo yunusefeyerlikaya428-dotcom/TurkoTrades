@@ -74,7 +74,7 @@ const SESSION_OPTIONS = [
 
 function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
   return (
-    <Card className={big ? "p-6" : ""}>
+    <Card className={cn(big ? "p-6 h-full" : "h-full")}>
       <div className="flex items-center justify-between">
         <div>
           <div className={cn("text-zinc-200", big ? "text-base font-semibold" : "text-sm")}>
@@ -86,7 +86,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
               setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))
             }
@@ -105,7 +105,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
 
           <button
             type="button"
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
               setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))
             }
@@ -125,7 +125,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
       </div>
 
       {/* Header days */}
-      <div className={cn("mt-4 grid grid-cols-7", big ? "gap-2" : "gap-2")}>
+      <div className="mt-4 grid grid-cols-7 gap-2">
         {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
           <div key={d} className="text-center text-[11px] text-zinc-500">
             {d}
@@ -133,10 +133,11 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         ))}
       </div>
 
-      {/* Cells */}
-      <div className={cn("mt-2 grid grid-cols-7", big ? "gap-2" : "gap-2")}>
+      {/* Cells (KARE + KAVİSLİ) */}
+      <div className={cn("mt-2 grid grid-cols-7 gap-2", big ? "text-xs" : "text-xs")}>
         {calendar.map((c, idx) => {
-          if (!c) return <div key={idx} className="h-[74px] rounded-xl bg-transparent" />;
+          if (!c)
+            return <div key={idx} className="aspect-square w-full rounded-2xl bg-transparent" />;
 
           const pnl = c.pnl;
           const intensity = clamp(Math.abs(pnl) / 120, 0, 1);
@@ -152,25 +153,28 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
               key={c.key}
               title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
               className={cn(
-                "h-[74px] rounded-xl border border-white/10 px-3 py-2",
+                "aspect-square w-full rounded-2xl border border-white/10",
+                big ? "p-3" : "p-2",
                 "hover:border-white/20 transition"
               )}
               style={{ background: bg }}
             >
-              <div className="flex items-start justify-between">
-                <span className="text-[13px] font-semibold text-zinc-100">{c.d}</span>
+              <div className="flex items-start justify-between gap-2">
+                <span className={cn("font-semibold text-zinc-100", big ? "text-base" : "text-sm")}>
+                  {c.d}
+                </span>
 
                 <div className="flex flex-col items-end leading-tight">
                   <span
                     className={cn(
-                      "text-[12px] font-semibold",
+                      big ? "text-[12px] font-semibold" : "text-[11px] font-semibold",
                       pnl > 0 ? "text-emerald-200" : pnl < 0 ? "text-red-200" : "text-zinc-300"
                     )}
                   >
                     {compactMoneyUSD(pnl)}
                   </span>
 
-                  <span className="mt-1 text-[12px] font-medium text-zinc-200/90">
+                  <span className={cn("mt-1 text-zinc-400", big ? "text-[11px]" : "text-[10px]")}>
                     {c.count ? `${c.count} trade` : ""}
                   </span>
                 </div>
@@ -326,8 +330,23 @@ export default function App() {
   const [range, setRange] = useState(30);
   const [symbolFilter, setSymbolFilter] = useState("ALL");
   const [monthCursor, setMonthCursor] = useState(new Date());
-  const [accountSize, setAccountSize] = useState(10000); // starting balance
-  const [pointValue, setPointValue] = useState(1); // pnl calc multiplier
+
+  // ✅ F5 sonrası reset olmasın (localStorage)
+  const [accountSize, setAccountSize] = useState(() => {
+    const v = localStorage.getItem("tt_accountSize");
+    return v ? Number(v) : 10000;
+  });
+  const [pointValue, setPointValue] = useState(() => {
+    const v = localStorage.getItem("tt_pointValue");
+    return v ? Number(v) : 1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("tt_accountSize", String(Number(accountSize || 0)));
+  }, [accountSize]);
+  useEffect(() => {
+    localStorage.setItem("tt_pointValue", String(Number(pointValue || 0)));
+  }, [pointValue]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
@@ -500,7 +519,6 @@ export default function App() {
         curLoss += 1;
         curWin = 0;
       } else {
-        // flat breaks both
         curWin = 0;
         curLoss = 0;
       }
@@ -630,6 +648,41 @@ export default function App() {
     return cells;
   }, [monthCursor, pnlByDay, tradeCountByDay]);
 
+  // ✅ Calendar charts (1-2-3)
+  const calendarCharts = useMemo(() => {
+    const y = monthCursor.getFullYear();
+    const m = monthCursor.getMonth();
+    const daysInMonth = endOfMonth(monthCursor).getDate();
+
+    const daily = Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      pnl: 0,
+      count: 0,
+    }));
+
+    for (const t of trades || []) {
+      if (!t.date) continue;
+      const d = new Date(t.date);
+      if (Number.isNaN(d.getTime())) continue;
+      if (d.getFullYear() !== y || d.getMonth() !== m) continue;
+
+      const idx = d.getDate() - 1;
+      daily[idx].pnl += Number(t.pnl || 0);
+      daily[idx].count += 1;
+    }
+
+    let run = 0;
+    const cumulative = daily.map((x) => {
+      run += x.pnl;
+      return { day: x.day, cumPnL: Number(run.toFixed(2)) };
+    });
+
+    return {
+      daily: daily.map((x) => ({ ...x, pnl: Number(x.pnl.toFixed(2)) })),
+      cumulative,
+    };
+  }, [trades, monthCursor]);
+
   const openTrade = (t) => {
     setSelectedTrade(t);
     setDrawerOpen(true);
@@ -662,8 +715,7 @@ export default function App() {
         alert("Manual PnL girmiyorsan Entry + Exit zorunlu.");
         return;
       }
-      const diff =
-        form.direction === "SHORT" ? Number(entry - exit) : Number(exit - entry);
+      const diff = form.direction === "SHORT" ? Number(entry - exit) : Number(exit - entry);
       pnl = Number((diff * Number(pointValue || 1)).toFixed(2));
     }
 
@@ -780,11 +832,7 @@ export default function App() {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-3">
                 {/* only big logo, no text */}
-                <img
-                  src="/logo.png"
-                  alt="TurkoTrades"
-                  className="h-10 md:h-12 w-auto object-contain"
-                />
+                <img src="/logo.png" alt="TurkoTrades" className="h-10 md:h-12 w-auto object-contain" />
 
                 <div className="text-xs text-zinc-500">
                   Net: <span className="text-zinc-300">{money(stats.total)}</span> • Balance:{" "}
@@ -877,61 +925,7 @@ export default function App() {
                   />
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <Card className="lg:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Account Growth</div>
-                        <div className="text-xs text-zinc-500">Starting balance → büyüme</div>
-                      </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        {equitySeries.length} pts
-                      </span>
-                    </div>
-
-                    <div className="mt-3 h-[320px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={equitySeries}>
-                          <defs>
-                            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
-                              <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "Balance"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="equity"
-                            stroke="rgba(168,85,247,0.95)"
-                            strokeWidth={2.6}
-                            fill="url(#eqFill)"
-                            dot={false}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
-
-                  <Heatmap
-                    big
-                    monthTitle={monthTitle}
-                    calendar={calendar}
-                    monthCursor={monthCursor}
-                    setMonthCursor={setMonthCursor}
-                  />
-                </div>
-
-                {/* Dashboard bottom widgets */}
+                {/* ✅ ÜSTTEKİ 2 ↔ ALTTAKİ 2 YER DEĞİŞTİ: önce NewTrade + RecentTrades */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <NewTradeForm
                     subtitle="Dashboard quick add"
@@ -1002,6 +996,65 @@ export default function App() {
                       </table>
                     </div>
                   </Card>
+                </div>
+
+                {/* ✅ Account Growth + Monthly Heatmap: yan yana, ortalı, eş genişlik */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card className="h-full">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-zinc-200">Account Growth</div>
+                        <div className="text-xs text-zinc-500">Starting balance → büyüme</div>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
+                        {equitySeries.length} pts
+                      </span>
+                    </div>
+
+                    <div className="mt-3 h-[320px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={equitySeries}>
+                          <defs>
+                            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
+                              <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis
+                            dataKey="date"
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(v) => [money(v), "Balance"]}
+                            contentStyle={{
+                              background: "rgba(9,9,11,0.92)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              borderRadius: 14,
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="equity"
+                            stroke="rgba(168,85,247,0.95)"
+                            strokeWidth={2.6}
+                            fill="url(#eqFill)"
+                            dot={false}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  <Heatmap
+                    big
+                    monthTitle={monthTitle}
+                    calendar={calendar}
+                    monthCursor={monthCursor}
+                    setMonthCursor={setMonthCursor}
+                  />
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -1103,7 +1156,12 @@ export default function App() {
                     label={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
                     kind="pf"
                   />
-                  <RingStat title="Trade Win %" value={stats.winRate / 100} label={`${fmt(stats.winRate)}%`} kind="wr" />
+                  <RingStat
+                    title="Trade Win %"
+                    value={stats.winRate / 100}
+                    label={`${fmt(stats.winRate)}%`}
+                    kind="wr"
+                  />
                   <BarStat title="Avg win/loss" left={stats.avgWin} right={Math.abs(stats.avgLoss)} />
                 </div>
 
@@ -1129,7 +1187,11 @@ export default function App() {
                             </linearGradient>
                           </defs>
                           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <XAxis
+                            dataKey="date"
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                          />
                           <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                           <Tooltip
                             formatter={(v) => [money(v), "Drawdown"]}
@@ -1189,7 +1251,12 @@ export default function App() {
                                 {s.count} trade • WR {fmt(s.winRate)}%
                               </div>
                             </div>
-                            <div className={cn("font-semibold", s.pnl >= 0 ? "text-emerald-200" : "text-red-200")}>
+                            <div
+                              className={cn(
+                                "font-semibold",
+                                s.pnl >= 0 ? "text-emerald-200" : "text-red-200"
+                              )}
+                            >
                               {money(s.pnl)}
                             </div>
                           </div>
@@ -1354,6 +1421,82 @@ export default function App() {
                     monthCursor={monthCursor}
                     setMonthCursor={setMonthCursor}
                   />
+                </div>
+
+                {/* ✅ Calendar’a 1-2-3 grafik */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                  {/* 1) Daily Net PnL */}
+                  <Card>
+                    <div className="text-sm text-zinc-200">Daily Net PnL</div>
+                    <div className="mt-3 h-[240px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={calendarCharts.daily}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(v) => [money(v), "PnL"]}
+                            contentStyle={{
+                              background: "rgba(9,9,11,0.92)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              borderRadius: 14,
+                            }}
+                          />
+                          <Bar dataKey="pnl" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  {/* 2) Daily Trade Count */}
+                  <Card>
+                    <div className="text-sm text-zinc-200">Daily Trade Count</div>
+                    <div className="mt-3 h-[240px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={calendarCharts.daily}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <YAxis
+                            stroke="rgba(255,255,255,0.45)"
+                            tick={{ fontSize: 12 }}
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            formatter={(v) => [v, "Trades"]}
+                            contentStyle={{
+                              background: "rgba(9,9,11,0.92)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              borderRadius: 14,
+                            }}
+                          />
+                          <Bar dataKey="count" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+
+                  {/* 3) Cumulative PnL (MTD) */}
+                  <Card>
+                    <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
+                    <div className="mt-3 h-[240px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={calendarCharts.cumulative}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                          <XAxis dataKey="day" stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(v) => [money(v), "Cum PnL"]}
+                            contentStyle={{
+                              background: "rgba(9,9,11,0.92)",
+                              border: "1px solid rgba(255,255,255,0.12)",
+                              borderRadius: 14,
+                            }}
+                          />
+                          <Line type="monotone" dataKey="cumPnL" dot={false} stroke="rgba(168,85,247,0.95)" strokeWidth={2.2} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
                 </div>
 
                 <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Calendar • aylık performans</div>
