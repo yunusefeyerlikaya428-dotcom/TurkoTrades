@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import { supabase } from "./supabase";
 import {
   LineChart,
   Line,
@@ -11,8 +11,6 @@ import {
   BarChart,
   Bar,
 } from "recharts";
-
-const API = "http://localhost:5000";
 
 function cn(...a) {
   return a.filter(Boolean).join(" ");
@@ -71,7 +69,13 @@ const SESSION_OPTIONS = [
    ✅ App DIŞI BİLEŞENLER
    ========================= */
 
-function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
+function Heatmap({
+  big = false,
+  monthTitle,
+  calendar,
+  monthCursor,
+  setMonthCursor,
+}) {
   return (
     <Card className={big ? "p-6" : ""}>
       <div className="flex items-center justify-between">
@@ -93,7 +97,11 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
               setMonthCursor(
-                new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1)
+                new Date(
+                  monthCursor.getFullYear(),
+                  monthCursor.getMonth() - 1,
+                  1
+                )
               )
             }
             title="Previous month"
@@ -114,7 +122,11 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
               setMonthCursor(
-                new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1)
+                new Date(
+                  monthCursor.getFullYear(),
+                  monthCursor.getMonth() + 1,
+                  1
+                )
               )
             }
             title="Next month"
@@ -132,7 +144,12 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         </div>
       </div>
 
-      <div className={cn("mt-4 grid grid-cols-7 text-xs", big ? "gap-3" : "gap-2")}>
+      <div
+        className={cn(
+          "mt-4 grid grid-cols-7 text-xs",
+          big ? "gap-3" : "gap-2"
+        )}
+      >
         {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
           <div key={d} className="text-center text-zinc-500">
             {d}
@@ -231,7 +248,6 @@ function NewTradeForm({
       <form
         onSubmit={handleSubmit}
         className="mt-4 space-y-3"
-        // Enter'la saçma submit zinciri olmasın
         onKeyDown={(e) => {
           if (e.key === "Enter") e.preventDefault();
         }}
@@ -323,7 +339,7 @@ function NewTradeForm({
       </form>
 
       <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-        Not: Session + Risk% UI’da kaydediliyor. Backend modeline ekleyince tabloda her yerde tam görünür.
+        Not: Risk% + Session Supabase’e yazılıyor.
       </div>
     </Card>
   );
@@ -341,7 +357,6 @@ export default function App() {
 
   const [activeNav, setActiveNav] = useState("dashboard");
 
-  // ✅ Lot yerine: riskPct + session
   const [form, setForm] = useState({
     symbol: "",
     direction: "LONG",
@@ -354,9 +369,18 @@ export default function App() {
     screenshot: "",
   });
 
+  // ✅ Supabase'ten çek
   const fetchTrades = async () => {
-    const res = await axios.get(`${API}/trades`);
-    setTrades(res.data || []);
+    const { data, error } = await supabase
+      .from("trades")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.log("FETCH ERROR:", error);
+      return;
+    }
+    setTrades(data || []);
   };
 
   useEffect(() => {
@@ -378,10 +402,12 @@ export default function App() {
       .filter((t) => {
         const td = new Date(t.date);
         const inRange = !Number.isNaN(td) ? td >= from : true;
+
         const symOk =
           symbolFilter === "ALL"
             ? true
             : (t.symbol || "").toUpperCase() === symbolFilter;
+
         return inRange && symOk;
       })
       .slice()
@@ -445,7 +471,7 @@ export default function App() {
     });
   }, [filtered]);
 
-  // ✅ Drawdown series (Trades sayfası)
+  // ✅ Drawdown series
   const drawdownSeries = useMemo(() => {
     let peak = -Infinity;
     return equitySeries.map((p) => {
@@ -456,9 +482,9 @@ export default function App() {
     });
   }, [equitySeries]);
 
-  // ✅ Day of week analysis (PnL + count + winRate)
+  // ✅ Day of week analysis
   const dow = useMemo(() => {
-    const names = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"]; // getDay()
+    const names = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
     const agg = new Map();
     for (const t of filtered) {
       if (!t.date) continue;
@@ -488,19 +514,16 @@ export default function App() {
     const m = new Map();
     for (const t of trades) {
       if (!t.date) continue;
-      const key = t.date;
-      m.set(key, (m.get(key) || 0) + Number(t.pnl || 0));
+      m.set(t.date, (m.get(t.date) || 0) + Number(t.pnl || 0));
     }
     return m;
   }, [trades]);
 
-  /** Günlük trade sayısı */
   const tradeCountByDay = useMemo(() => {
     const m = new Map();
     for (const t of trades) {
       if (!t.date) continue;
-      const key = t.date;
-      m.set(key, (m.get(key) || 0) + 1);
+      m.set(t.date, (m.get(t.date) || 0) + 1);
     }
     return m;
   }, [trades]);
@@ -554,17 +577,30 @@ export default function App() {
       return;
     }
 
-    await axios.post(`${API}/trades`, {
-      ...form,
-      symbol,
-      lot: 1,
-      riskPct,
-      session: form.session,
-      entry,
-      exit,
-      notes: form.notes || "",
-      screenshot: form.screenshot || "",
-    });
+    // Basit PnL hesabı (point farkı). İstersen sonra $ çeviririz.
+    const pnl =
+      form.direction === "SHORT" ? Number((entry - exit).toFixed(2)) : Number((exit - entry).toFixed(2));
+
+    const { error } = await supabase.from("trades").insert([
+      {
+        date: form.date,
+        symbol,
+        direction: form.direction,
+        session: form.session,
+        entry,
+        exit,
+        pnl,
+        risk_pct: riskPct,
+        notes: (form.notes || "").trim() || null,
+        screenshot_url: (form.screenshot || "").trim() || null,
+      },
+    ]);
+
+    if (error) {
+      console.log("SUPABASE INSERT ERROR:", error);
+      alert(error.message);
+      return;
+    }
 
     setForm({
       symbol: "",
@@ -577,6 +613,7 @@ export default function App() {
       notes: "",
       screenshot: "",
     });
+
     fetchTrades();
   };
 
@@ -585,13 +622,16 @@ export default function App() {
     const ok = confirm("Bu trade silinsin mi?");
     if (!ok) return;
 
-    try {
-      await axios.delete(`${API}/trades/${id}`);
-      if (selectedTrade?.id === id) closeDrawer();
-      fetchTrades();
-    } catch {
-      alert("Silme başarısız. Server açık mı?");
+    const { error } = await supabase.from("trades").delete().eq("id", id);
+
+    if (error) {
+      console.log("DELETE ERROR:", error);
+      alert(error.message);
+      return;
     }
+
+    if (selectedTrade?.id === id) closeDrawer();
+    fetchTrades();
   };
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", {
@@ -646,7 +686,7 @@ export default function App() {
 
           <div className="mt-auto flex flex-col items-center gap-2">
             <div className="h-10 w-10 rounded-full border border-white/10 bg-white/5" />
-            <div className="text-[10px] text-zinc-500">local</div>
+            <div className="text-[10px] text-zinc-500">supabase</div>
           </div>
         </aside>
 
@@ -743,11 +783,7 @@ export default function App() {
                     title="Profit Factor"
                     value={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
                     tone={
-                      stats.pf >= 1.5
-                        ? "good"
-                        : stats.pf >= 1
-                        ? "neutral"
-                        : "bad"
+                      stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"
                     }
                     sub="brüt kâr / brüt zarar"
                   />
@@ -832,7 +868,6 @@ export default function App() {
                     sessionOptions={SESSION_OPTIONS}
                   />
 
-                  {/* ✅ Dashboard table: Trades sayfası gibi detaylı */}
                   <Card className="lg:col-span-2">
                     <div className="flex items-center justify-between">
                       <div>
@@ -876,10 +911,10 @@ export default function App() {
                                   {t.session || "—"}
                                 </td>
                                 <td className="px-4 py-3 text-zinc-300">
-                                  {t.riskPct !== undefined &&
-                                  t.riskPct !== null &&
-                                  t.riskPct !== ""
-                                    ? `${t.riskPct}%`
+                                  {t.risk_pct !== undefined &&
+                                  t.risk_pct !== null &&
+                                  t.risk_pct !== ""
+                                    ? `${t.risk_pct}%`
                                     : "—"}
                                 </td>
                                 <td
@@ -906,7 +941,7 @@ export default function App() {
                 </div>
 
                 <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
-                  Local dashboard • 5000 (API) + 5173 (UI)
+                  Dashboard • Supabase
                 </div>
               </>
             )}
@@ -941,7 +976,6 @@ export default function App() {
                   />
                 </div>
 
-                {/* ANALYTICS: Drawdown + Day of Week */}
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
                   <Card>
                     <div className="flex items-center justify-between">
@@ -1062,7 +1096,6 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* Form + Table */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <NewTradeForm
                     subtitle="Hızlı ekleme"
@@ -1140,10 +1173,10 @@ export default function App() {
                                 </td>
 
                                 <td className="px-4 py-3 text-zinc-300">
-                                  {t.riskPct !== undefined &&
-                                  t.riskPct !== null &&
-                                  t.riskPct !== ""
-                                    ? `${t.riskPct}%`
+                                  {t.risk_pct !== undefined &&
+                                  t.risk_pct !== null &&
+                                  t.risk_pct !== ""
+                                    ? `${t.risk_pct}%`
                                     : "—"}
                                 </td>
 
@@ -1172,9 +1205,9 @@ export default function App() {
                                 </td>
 
                                 <td className="px-4 py-3">
-                                  {t.screenshot ? (
+                                  {t.screenshot_url ? (
                                     <a
-                                      href={t.screenshot}
+                                      href={t.screenshot_url}
                                       target="_blank"
                                       rel="noreferrer"
                                       className="text-purple-300 hover:underline"
@@ -1253,7 +1286,7 @@ export default function App() {
                       </label>
 
                       <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-                        API: <span className="text-zinc-200">{API}</span>
+                        DB: <span className="text-zinc-200">Supabase</span>
                       </div>
                     </div>
                   </Card>
@@ -1331,10 +1364,10 @@ export default function App() {
                     <Info
                       label="Risk %"
                       value={
-                        selectedTrade.riskPct !== undefined &&
-                        selectedTrade.riskPct !== null &&
-                        selectedTrade.riskPct !== ""
-                          ? `${selectedTrade.riskPct}%`
+                        selectedTrade.risk_pct !== undefined &&
+                        selectedTrade.risk_pct !== null &&
+                        selectedTrade.risk_pct !== ""
+                          ? `${selectedTrade.risk_pct}%`
                           : "—"
                       }
                     />
@@ -1373,9 +1406,9 @@ export default function App() {
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center justify-between">
                       <div className="text-xs text-zinc-400">Screenshot</div>
-                      {selectedTrade.screenshot ? (
+                      {selectedTrade.screenshot_url ? (
                         <a
-                          href={selectedTrade.screenshot}
+                          href={selectedTrade.screenshot_url}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-purple-300 hover:underline"
@@ -1385,10 +1418,10 @@ export default function App() {
                       ) : null}
                     </div>
 
-                    {selectedTrade.screenshot ? (
+                    {selectedTrade.screenshot_url ? (
                       <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
                         <img
-                          src={selectedTrade.screenshot}
+                          src={selectedTrade.screenshot_url}
                           alt="screenshot"
                           className="max-h-[360px] w-full bg-black/30 object-contain"
                           onError={(e) => {
