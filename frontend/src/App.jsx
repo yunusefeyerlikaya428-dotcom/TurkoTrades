@@ -69,23 +69,12 @@ const SESSION_OPTIONS = [
    ✅ App DIŞI BİLEŞENLER
    ========================= */
 
-function Heatmap({
-  big = false,
-  monthTitle,
-  calendar,
-  monthCursor,
-  setMonthCursor,
-}) {
+function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
   return (
     <Card className={big ? "p-6" : ""}>
       <div className="flex items-center justify-between">
         <div>
-          <div
-            className={cn(
-              "text-zinc-200",
-              big ? "text-base font-semibold" : "text-sm"
-            )}
-          >
+          <div className={cn("text-zinc-200", big ? "text-base font-semibold" : "text-sm")}>
             Monthly Heatmap
           </div>
           <div className="text-xs text-zinc-500">{monthTitle}</div>
@@ -96,13 +85,7 @@ function Heatmap({
             type="button"
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
-              setMonthCursor(
-                new Date(
-                  monthCursor.getFullYear(),
-                  monthCursor.getMonth() - 1,
-                  1
-                )
-              )
+              setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))
             }
             title="Previous month"
           >
@@ -121,13 +104,7 @@ function Heatmap({
             type="button"
             className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
             onClick={() =>
-              setMonthCursor(
-                new Date(
-                  monthCursor.getFullYear(),
-                  monthCursor.getMonth() + 1,
-                  1
-                )
-              )
+              setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))
             }
             title="Next month"
           >
@@ -144,12 +121,7 @@ function Heatmap({
         </div>
       </div>
 
-      <div
-        className={cn(
-          "mt-4 grid grid-cols-7 text-xs",
-          big ? "gap-3" : "gap-2"
-        )}
-      >
+      <div className={cn("mt-4 grid grid-cols-7 text-xs", big ? "gap-3" : "gap-2")}>
         {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
           <div key={d} className="text-center text-zinc-500">
             {d}
@@ -159,10 +131,7 @@ function Heatmap({
         {calendar.map((c, idx) => {
           if (!c)
             return (
-              <div
-                key={idx}
-                className={cn("aspect-square w-full rounded-lg", "bg-transparent")}
-              />
+              <div key={idx} className={cn("aspect-square w-full rounded-lg", "bg-transparent")} />
             );
 
           const pnl = c.pnl;
@@ -178,10 +147,7 @@ function Heatmap({
             <div
               key={c.key}
               title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
-              className={cn(
-                "aspect-square w-full rounded-lg",
-                "border border-white/10 p-2"
-              )}
+              className={cn("aspect-square w-full rounded-lg", "border border-white/10 p-2")}
               style={{ background: bg }}
             >
               <div className="flex items-start justify-between">
@@ -208,12 +174,7 @@ function Heatmap({
                     {compactMoneyUSD(pnl)}
                   </span>
 
-                  <span
-                    className={cn(
-                      "mt-1 text-zinc-400",
-                      big ? "text-[11px]" : "text-[10px]"
-                    )}
-                  >
+                  <span className={cn("mt-1 text-zinc-400", big ? "text-[11px]" : "text-[10px]")}>
                     {c.count ? `${c.count} trade` : ""}
                   </span>
                 </div>
@@ -226,13 +187,7 @@ function Heatmap({
   );
 }
 
-function NewTradeForm({
-  subtitle = "Hızlı ekleme",
-  form,
-  setForm,
-  handleSubmit,
-  sessionOptions,
-}) {
+function NewTradeForm({ subtitle = "Hızlı ekleme", form, setForm, handleSubmit, sessionOptions }) {
   return (
     <Card className="lg:col-span-1">
       <div className="flex items-center justify-between">
@@ -371,10 +326,9 @@ export default function App() {
 
   // ✅ Supabase'ten çek
   const fetchTrades = async () => {
-    const { data, error } = await supabase
-      .from("trades")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("trades").select("*").order("created_at", {
+      ascending: false,
+    });
 
     if (error) {
       console.log("FETCH ERROR:", error);
@@ -388,9 +342,7 @@ export default function App() {
   }, []);
 
   const symbols = useMemo(() => {
-    const s = new Set(
-      trades.map((t) => (t.symbol || "").toUpperCase()).filter(Boolean)
-    );
+    const s = new Set(trades.map((t) => (t.symbol || "").toUpperCase()).filter(Boolean));
     return ["ALL", ...Array.from(s).sort()];
   }, [trades]);
 
@@ -404,9 +356,7 @@ export default function App() {
         const inRange = !Number.isNaN(td) ? td >= from : true;
 
         const symOk =
-          symbolFilter === "ALL"
-            ? true
-            : (t.symbol || "").toUpperCase() === symbolFilter;
+          symbolFilter === "ALL" ? true : (t.symbol || "").toUpperCase() === symbolFilter;
 
         return inRange && symOk;
       })
@@ -442,8 +392,7 @@ export default function App() {
         .reduce((a, t) => a + Number(t.pnl), 0)
     );
 
-    const pf =
-      grossLossAbs > 0 ? grossWin / grossLossAbs : grossWin > 0 ? 999 : 0;
+    const pf = grossLossAbs > 0 ? grossWin / grossLossAbs : grossWin > 0 ? 999 : 0;
 
     return {
       total,
@@ -566,20 +515,16 @@ export default function App() {
     const exit = Number(form.exit);
     const riskPct = Number(form.riskPct);
 
-    if (
-      !symbol ||
-      !form.date ||
-      !Number.isFinite(entry) ||
-      !Number.isFinite(exit) ||
-      !Number.isFinite(riskPct)
-    ) {
+    if (!symbol || !form.date || !Number.isFinite(entry) || !Number.isFinite(exit) || !Number.isFinite(riskPct)) {
       alert("Symbol, date, risk%, entry, exit alanları zorunlu.");
       return;
     }
 
     // Basit PnL hesabı (point farkı). İstersen sonra $ çeviririz.
     const pnl =
-      form.direction === "SHORT" ? Number((entry - exit).toFixed(2)) : Number((exit - entry).toFixed(2));
+      form.direction === "SHORT"
+        ? Number((entry - exit).toFixed(2))
+        : Number((exit - entry).toFixed(2));
 
     const { error } = await supabase.from("trades").insert([
       {
@@ -653,7 +598,10 @@ export default function App() {
         <aside className="relative sticky top-0 flex h-screen w-[78px] flex-col items-center gap-3 border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl">
           <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500/0 via-purple-500/30 to-purple-500/0" />
 
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-pink-500/10" />
+          {/* ✅ sidebar logo icon */}
+          <div className="mb-2 flex h-12 w-12 items-center justify-center">
+            <img src="/logo-icon.png" alt="TurkoTrades" className="h-10 w-10 rounded-xl" />
+          </div>
 
           <NavIcon
             active={activeNav === "dashboard"}
@@ -696,18 +644,14 @@ export default function App() {
             {/* Top bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-pink-500/10" />
                 <div>
-                  <div className="flex items-center gap-2">
-  <img src="/logo.png" alt="TurkoTrades" className="h-6" />
-  <div className="text-sm font-medium text-zinc-200">
-    TurkoTrades
-  </div>
-</div>
+                  {/* ✅ only big logo, no text */}
+                  <div className="flex items-center">
+                    <img src="/logo.png" alt="TurkoTrades" className="h-14" />
+                  </div>
+
                   <div className="text-xs text-zinc-500">
-                    Net:{" "}
-                    <span className="text-zinc-300">{money(stats.total)}</span>{" "}
-                    • Return:{" "}
+                    Net: <span className="text-zinc-300">{money(stats.total)}</span> • Return:{" "}
                     <span
                       className={cn(
                         "font-medium",
@@ -785,9 +729,7 @@ export default function App() {
                   <Kpi
                     title="Profit Factor"
                     value={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
-                    tone={
-                      stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"
-                    }
+                    tone={stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"}
                     sub="brüt kâr / brüt zarar"
                   />
                   <Kpi
@@ -803,9 +745,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Equity Curve</div>
-                        <div className="text-xs text-zinc-500">
-                          Filtreye göre kümülatif
-                        </div>
+                        <div className="text-xs text-zinc-500">Filtreye göre kümülatif</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         {equitySeries.length} pts
@@ -875,9 +815,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Recent Trades</div>
-                        <div className="text-xs text-zinc-500">
-                          Son 15 trade (detaylı)
-                        </div>
+                        <div className="text-xs text-zinc-500">Son 15 trade (detaylı)</div>
                       </div>
                     </div>
 
@@ -904,28 +842,18 @@ export default function App() {
                                 className="cursor-pointer hover:bg-white/5"
                                 onClick={() => openTrade(t)}
                               >
-                                <td className="px-4 py-3 text-zinc-400">
-                                  {t.date}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {(t.symbol || "").toUpperCase()}
-                                </td>
+                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
+                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
+                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
                                 <td className="px-4 py-3 text-zinc-300">
-                                  {t.session || "—"}
-                                </td>
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.risk_pct !== undefined &&
-                                  t.risk_pct !== null &&
-                                  t.risk_pct !== ""
+                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
                                     ? `${t.risk_pct}%`
                                     : "—"}
                                 </td>
                                 <td
                                   className={cn(
                                     "px-4 py-3 font-medium",
-                                    Number(t.pnl) >= 0
-                                      ? "text-emerald-300"
-                                      : "text-red-300"
+                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
                                   )}
                                 >
                                   {money(t.pnl)}
@@ -943,9 +871,7 @@ export default function App() {
                   </Card>
                 </div>
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
-                  Dashboard • Supabase
-                </div>
+                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Dashboard • Supabase</div>
               </>
             )}
 
@@ -972,11 +898,7 @@ export default function App() {
                     label={`${fmt(stats.winRate)}%`}
                     kind="wr"
                   />
-                  <BarStat
-                    title="Avg win/loss"
-                    left={stats.avgWin}
-                    right={Math.abs(stats.avgLoss)}
-                  />
+                  <BarStat title="Avg win/loss" left={stats.avgWin} right={Math.abs(stats.avgLoss)} />
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -984,9 +906,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Drawdown</div>
-                        <div className="text-xs text-zinc-500">
-                          Peak-to-trough (kümülatif)
-                        </div>
+                        <div className="text-xs text-zinc-500">Peak-to-trough (kümülatif)</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         {drawdownSeries.length} pts
@@ -1033,9 +953,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Day of Week</div>
-                        <div className="text-xs text-zinc-500">
-                          PnL + trade count
-                        </div>
+                        <div className="text-xs text-zinc-500">PnL + trade count</div>
                       </div>
                     </div>
 
@@ -1112,9 +1030,7 @@ export default function App() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Trades</div>
-                        <div className="text-xs text-zinc-500">
-                          Satıra tıkla → detay sağdan açılsın
-                        </div>
+                        <div className="text-xs text-zinc-500">Satıra tıkla → detay sağdan açılsın</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         Table
@@ -1151,12 +1067,8 @@ export default function App() {
                                 className="cursor-pointer hover:bg-white/5"
                                 onClick={() => openTrade(t)}
                               >
-                                <td className="px-4 py-3 text-zinc-400">
-                                  {t.date}
-                                </td>
-                                <td className="px-4 py-3">
-                                  {(t.symbol || "").toUpperCase()}
-                                </td>
+                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
+                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
 
                                 <td className="px-4 py-3">
                                   <span
@@ -1171,31 +1083,21 @@ export default function App() {
                                   </span>
                                 </td>
 
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.session || "—"}
-                                </td>
+                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
 
                                 <td className="px-4 py-3 text-zinc-300">
-                                  {t.risk_pct !== undefined &&
-                                  t.risk_pct !== null &&
-                                  t.risk_pct !== ""
+                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
                                     ? `${t.risk_pct}%`
                                     : "—"}
                                 </td>
 
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.entry}
-                                </td>
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.exit}
-                                </td>
+                                <td className="px-4 py-3 text-zinc-300">{t.entry}</td>
+                                <td className="px-4 py-3 text-zinc-300">{t.exit}</td>
 
                                 <td
                                   className={cn(
                                     "px-4 py-3 font-medium",
-                                    Number(t.pnl) >= 0
-                                      ? "text-emerald-300"
-                                      : "text-red-300"
+                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
                                   )}
                                 >
                                   {money(t.pnl)}
@@ -1277,9 +1179,7 @@ export default function App() {
 
                     <div className="mt-4 space-y-3">
                       <label className="block">
-                        <div className="mb-1 text-xs text-zinc-400">
-                          Account Size
-                        </div>
+                        <div className="mb-1 text-xs text-zinc-400">Account Size</div>
                         <input
                           value={accountSize}
                           onChange={(e) => setAccountSize(Number(e.target.value))}
@@ -1302,9 +1202,7 @@ export default function App() {
                   </Card>
                 </div>
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
-                  Settings
-                </div>
+                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Settings</div>
               </>
             )}
           </div>
@@ -1312,12 +1210,7 @@ export default function App() {
       </div>
 
       {/* Drawer */}
-      <div
-        className={cn(
-          "fixed inset-0 z-50",
-          drawerOpen ? "pointer-events-auto" : "pointer-events-none"
-        )}
-      >
+      <div className={cn("fixed inset-0 z-50", drawerOpen ? "pointer-events-auto" : "pointer-events-none")}>
         <div
           className={cn(
             "absolute inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity",
@@ -1335,9 +1228,7 @@ export default function App() {
           <div className="flex h-full flex-col">
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
-                <div className="text-sm font-medium text-zinc-200">
-                  Trade Detail
-                </div>
+                <div className="text-sm font-medium text-zinc-200">Trade Detail</div>
                 <div className="text-xs text-zinc-500">
                   Uzun notlar burada kalsın, tablo temiz kalsın.
                 </div>
@@ -1358,10 +1249,7 @@ export default function App() {
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <Info
-                      label="Symbol"
-                      value={(selectedTrade.symbol || "").toUpperCase()}
-                    />
+                    <Info label="Symbol" value={(selectedTrade.symbol || "").toUpperCase()} />
                     <Info label="Direction" value={selectedTrade.direction} />
                     <Info label="Date" value={selectedTrade.date} />
                     <Info
@@ -1374,14 +1262,8 @@ export default function App() {
                           : "—"
                       }
                     />
-                    <Info
-                      label="Session"
-                      value={selectedTrade.session ? selectedTrade.session : "—"}
-                    />
-                    <Info
-                      label="Entry"
-                      value={String(selectedTrade.entry ?? "—")}
-                    />
+                    <Info label="Session" value={selectedTrade.session ? selectedTrade.session : "—"} />
+                    <Info label="Entry" value={String(selectedTrade.entry ?? "—")} />
                     <Info label="Exit" value={String(selectedTrade.exit ?? "—")} />
                   </div>
 
@@ -1390,9 +1272,7 @@ export default function App() {
                     <div
                       className={cn(
                         "mt-1 text-2xl font-semibold",
-                        Number(selectedTrade.pnl) >= 0
-                          ? "text-emerald-300"
-                          : "text-red-300"
+                        Number(selectedTrade.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
                       )}
                     >
                       {money(selectedTrade.pnl)}
@@ -1467,10 +1347,7 @@ export default function App() {
 function Card({ className, children }) {
   return (
     <div
-      className={cn(
-        "rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur",
-        className
-      )}
+      className={cn("rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur", className)}
     >
       {children}
     </div>
@@ -1489,9 +1366,7 @@ function Kpi({ title, value, sub, tone }) {
     <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
       <div className="flex items-center justify-between">
         <div className="text-xs text-zinc-400">{title}</div>
-        <div className={cn("rounded-full border px-2 py-1 text-[10px]", badge)}>
-          {sub}
-        </div>
+        <div className={cn("rounded-full border px-2 py-1 text-[10px]", badge)}>{sub}</div>
       </div>
       <div className="mt-2 text-2xl font-semibold tracking-tight">{value}</div>
     </div>
@@ -1574,12 +1449,7 @@ function MiniStat({ title, value, subtitle, series = [], good }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
       <div className="text-xs text-zinc-400">{title}</div>
-      <div
-        className={cn(
-          "mt-1 text-2xl font-semibold",
-          good ? "text-emerald-200" : "text-red-200"
-        )}
-      >
+      <div className={cn("mt-1 text-2xl font-semibold", good ? "text-emerald-200" : "text-red-200")}>
         {value}
       </div>
       <div className="mt-1 text-xs text-zinc-500">{subtitle}</div>
@@ -1587,13 +1457,7 @@ function MiniStat({ title, value, subtitle, series = [], good }) {
       <div className="mt-3 h-16">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
-            <Line
-              type="monotone"
-              dataKey="v"
-              stroke="rgba(168,85,247,0.95)"
-              strokeWidth={2}
-              dot={false}
-            />
+            <Line type="monotone" dataKey="v" stroke="rgba(168,85,247,0.95)" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -1620,14 +1484,7 @@ function RingStat({ title, value, label, kind }) {
         <div className="text-2xl font-semibold">{label}</div>
 
         <svg width="52" height="52" viewBox="0 0 52 52">
-          <circle
-            cx="26"
-            cy="26"
-            r={r}
-            stroke="rgba(255,255,255,0.10)"
-            strokeWidth="6"
-            fill="none"
-          />
+          <circle cx="26" cy="26" r={r} stroke="rgba(255,255,255,0.10)" strokeWidth="6" fill="none" />
           <circle
             cx="26"
             cy="26"
