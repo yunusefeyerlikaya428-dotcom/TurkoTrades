@@ -36,7 +36,6 @@ function compactMoney(n) {
   if (abs >= 100) return sign + String(Math.round(abs));
   return sign + String(Math.round(abs));
 }
-
 function money(n) {
   const x = Number(n || 0);
   if (!Number.isFinite(x)) return "$0.00";
@@ -46,7 +45,6 @@ function compactMoneyUSD(n) {
   const s = compactMoney(n);
   return s ? `${s}$` : "";
 }
-
 function startOfMonth(d) {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
@@ -62,7 +60,6 @@ function ymd(d) {
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
-
 function formatTRDate(ymdStr) {
   if (!ymdStr || typeof ymdStr !== "string") return "";
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdStr);
@@ -80,7 +77,7 @@ const SESSION_OPTIONS = [
 ];
 
 /* =========================
-   ✅ PORTAL FLOATING LAYER
+   FLOATING LAYER
    ========================= */
 
 function FloatingLayer({
@@ -128,7 +125,6 @@ function FloatingLayer({
     };
 
     update();
-
     window.addEventListener("resize", update);
     window.addEventListener("scroll", update, true);
 
@@ -149,7 +145,139 @@ function FloatingLayer({
 }
 
 /* =========================
-   ✅ App DIŞI BİLEŞENLER
+   UI HELPERS
+   ========================= */
+
+function ToastViewport({ toasts, removeToast }) {
+  if (!toasts.length) return null;
+
+  return createPortal(
+    <div className="fixed right-4 top-4 z-[100000] flex w-full max-w-sm flex-col gap-2">
+      {toasts.map((t) => (
+        <div
+          key={t.id}
+          className={cn(
+            "rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur transition-all duration-300",
+            t.type === "success" &&
+              "border-emerald-500/25 bg-emerald-500/12 text-emerald-100",
+            t.type === "error" && "border-red-500/25 bg-red-500/12 text-red-100",
+            t.type === "info" && "border-white/10 bg-zinc-900/90 text-zinc-100"
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">{t.title}</div>
+              {t.message ? <div className="mt-1 text-xs opacity-85">{t.message}</div> : null}
+            </div>
+            <button
+              type="button"
+              onClick={() => removeToast(t.id)}
+              className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] hover:bg-white/10"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>,
+    document.body
+  );
+}
+
+function ConfirmModal({ open, title, description, confirmText, onConfirm, onCancel }) {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100001]">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[3px]" onClick={onCancel} />
+      <div className="absolute left-1/2 top-1/2 w-[92%] max-w-md -translate-x-1/2 -translate-y-1/2">
+        <div className="rounded-3xl border border-white/10 bg-zinc-950/95 p-5 shadow-2xl backdrop-blur-xl">
+          <div className="text-lg font-semibold text-zinc-100">{title}</div>
+          <div className="mt-2 text-sm text-zinc-400">{description}</div>
+
+          <div className="mt-5 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 transition hover:bg-white/10 active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onConfirm}
+              className="rounded-xl border border-red-500/25 bg-red-500/15 px-4 py-2 text-sm text-red-100 transition hover:bg-red-500/20 active:scale-[0.98]"
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function EmptyState({ title, text, compact = false }) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-dashed border-white/10 bg-white/[0.03] text-center",
+        compact ? "p-6" : "p-10"
+      )}
+    >
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-lg">
+        ✦
+      </div>
+      <div className="mt-4 text-sm font-medium text-zinc-200">{title}</div>
+      <div className="mt-1 text-xs text-zinc-500">{text}</div>
+    </div>
+  );
+}
+
+function PageTransition({ pageKey, children }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    setVisible(false);
+    const t = setTimeout(() => setVisible(true), 20);
+    return () => clearTimeout(t);
+  }, [pageKey]);
+
+  return (
+    <div
+      className={cn(
+        "transition-all duration-300",
+        visible ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function AnimatedChart({ children, delay = 0 }) {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  return (
+    <div
+      className={cn(
+        "transition-all duration-500",
+        show ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+/* =========================
+   APP DIŞI BİLEŞENLER
    ========================= */
 
 function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
@@ -158,7 +286,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
   const radiusClass = "rounded-[8px]";
 
   return (
-    <Card className={cn(big ? "p-6 h-full" : "h-full")}>
+    <Card className={cn(big ? "h-full p-6" : "h-full")}>
       <div className="flex items-center justify-between">
         <div>
           <div className={cn("text-zinc-200", big ? "text-base font-semibold" : "text-sm")}>
@@ -170,7 +298,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         <div className="flex gap-2">
           <button
             type="button"
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:bg-white/10 active:scale-[0.98]"
             onClick={() =>
               setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() - 1, 1))
             }
@@ -189,7 +317,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
 
           <button
             type="button"
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"
+            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:bg-white/10 active:scale-[0.98]"
             onClick={() =>
               setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 1))
             }
@@ -256,7 +384,7 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
                 key={c.key}
                 title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
                 className={cn(
-                  "border border-white/10 hover:border-white/20 transition p-2",
+                  "border border-white/10 p-2 transition duration-200 hover:-translate-y-[1px] hover:border-white/20",
                   radiusClass
                 )}
                 style={{
@@ -320,7 +448,7 @@ function NewTradeForm({
   }, [dateOpen]);
 
   return (
-    <Card className="lg:col-span-1 relative">
+    <Card className="relative lg:col-span-1">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-zinc-200">New Trade</div>
@@ -373,7 +501,7 @@ function NewTradeForm({
             <button
               ref={anchorRef}
               type="button"
-              className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-left text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500/40 hover:border-white/20"
+              className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-left text-sm text-zinc-100 outline-none transition hover:border-white/20 focus:ring-2 focus:ring-purple-500/40 active:scale-[0.99]"
               onClick={() => setDateOpen((v) => !v)}
             >
               <span className={cn(form.date ? "text-zinc-100" : "text-zinc-600")}>
@@ -392,7 +520,7 @@ function NewTradeForm({
                 <div className="flex items-center justify-between px-2 pb-2">
                   <button
                     type="button"
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10"
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 transition hover:bg-white/10 active:scale-[0.98]"
                     onClick={() => {
                       const today = new Date();
                       setForm({ ...form, date: ymd(today) });
@@ -404,7 +532,7 @@ function NewTradeForm({
 
                   <button
                     type="button"
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 hover:bg-white/10"
+                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-zinc-300 transition hover:bg-white/10 active:scale-[0.98]"
                     onClick={() => {
                       setForm({ ...form, date: "" });
                       setDateOpen(false);
@@ -485,13 +613,13 @@ function NewTradeForm({
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             rows={5}
             placeholder="Trade notes"
-            className="w-full resize-none rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-purple-500/40"
+            className="w-full resize-none rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 transition focus:ring-2 focus:ring-purple-500/40"
           />
         </label>
 
         <button
           type="submit"
-          className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 hover:opacity-95"
+          className="w-full rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 transition hover:opacity-95 active:scale-[0.99]"
         >
           Add Trade
         </button>
@@ -531,8 +659,7 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
         type="button"
         onClick={() => setOpen((x) => !x)}
         className={cn(
-          "w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none hover:border-white/20 focus:ring-2 focus:ring-purple-500/40",
-          "flex items-center justify-between gap-3",
+          "flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none transition hover:border-white/20 focus:ring-2 focus:ring-purple-500/40 active:scale-[0.99]",
           buttonClassName
         )}
       >
@@ -554,12 +681,7 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
         </svg>
       </button>
 
-      <FloatingLayer
-        open={open}
-        anchorRef={anchorRef}
-        layerRef={layerRef}
-        matchWidth
-      >
+      <FloatingLayer open={open} anchorRef={anchorRef} layerRef={layerRef} matchWidth>
         <div
           className={cn(
             "rounded-2xl border border-white/10 bg-zinc-900/95 shadow-2xl backdrop-blur",
@@ -578,10 +700,8 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
                     setOpen(false);
                   }}
                   className={cn(
-                    "w-full rounded-xl px-3 py-2 text-left text-sm transition",
-                    active
-                      ? "bg-white/10 text-zinc-100"
-                      : "text-zinc-200 hover:bg-white/5"
+                    "w-full rounded-xl px-3 py-2 text-left text-sm transition active:scale-[0.99]",
+                    active ? "bg-white/10 text-zinc-100" : "text-zinc-200 hover:bg-white/5"
                   )}
                 >
                   {o.t}
@@ -610,16 +730,17 @@ export default function App() {
     return v ? Number(v) : 1;
   });
 
-  useEffect(() => {
-    localStorage.setItem("tt_accountSize", String(Number(accountSize || 0)));
-  }, [accountSize]);
-  useEffect(() => {
-    localStorage.setItem("tt_pointValue", String(Number(pointValue || 0)));
-  }, [pointValue]);
-
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
   const [activeNav, setActiveNav] = useState("dashboard");
+
+  const [confirmDelete, setConfirmDelete] = useState({
+    open: false,
+    id: null,
+    source: null,
+  });
+
+  const [toasts, setToasts] = useState([]);
 
   const [form, setForm] = useState({
     symbol: "",
@@ -634,6 +755,26 @@ export default function App() {
     screenshot: "",
   });
 
+  useEffect(() => {
+    localStorage.setItem("tt_accountSize", String(Number(accountSize || 0)));
+  }, [accountSize]);
+
+  useEffect(() => {
+    localStorage.setItem("tt_pointValue", String(Number(pointValue || 0)));
+  }, [pointValue]);
+
+  const pushToast = (title, message = "", type = "info") => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, title, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((x) => x.id !== id));
+    }, 3200);
+  };
+
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((x) => x.id !== id));
+  };
+
   const fetchTrades = async () => {
     const { data, error } = await supabase.from("trades").select("*").order("created_at", {
       ascending: false,
@@ -641,6 +782,7 @@ export default function App() {
 
     if (error) {
       console.log("FETCH ERROR:", error);
+      pushToast("Fetch failed", error.message, "error");
       return;
     }
     setTrades(data || []);
@@ -940,7 +1082,12 @@ export default function App() {
 
   const closeDrawer = () => {
     setDrawerOpen(false);
-    setTimeout(() => setSelectedTrade(null), 160);
+    setTimeout(() => setSelectedTrade(null), 260);
+  };
+
+  const askDeleteTrade = (id, source = "table") => {
+    if (!id) return;
+    setConfirmDelete({ open: true, id, source });
   };
 
   const handleSubmit = async (e) => {
@@ -952,7 +1099,7 @@ export default function App() {
     const manual = form.pnlManual !== "" ? Number(form.pnlManual) : null;
 
     if (!symbol || !form.date || !Number.isFinite(riskPct)) {
-      alert("Symbol, date, risk% zorunlu.");
+      pushToast("Missing fields", "Symbol, date ve risk% zorunlu.", "error");
       return;
     }
 
@@ -961,7 +1108,7 @@ export default function App() {
       pnl = Number(manual.toFixed(2));
     } else {
       if (!Number.isFinite(entry) || !Number.isFinite(exit)) {
-        alert("Manual PnL girmiyorsan Entry + Exit zorunlu.");
+        pushToast("Missing fields", "Manual PnL yoksa Entry + Exit zorunlu.", "error");
         return;
       }
       const diff = form.direction === "SHORT" ? Number(entry - exit) : Number(exit - entry);
@@ -985,7 +1132,7 @@ export default function App() {
 
     if (error) {
       console.log("SUPABASE INSERT ERROR:", error);
-      alert(error.message);
+      pushToast("Trade add failed", error.message, "error");
       return;
     }
 
@@ -1002,24 +1149,24 @@ export default function App() {
       screenshot: "",
     });
 
-    fetchTrades();
+    await fetchTrades();
+    pushToast("Trade added", "Yeni trade başarıyla kaydedildi.", "success");
   };
 
   const handleDelete = async (id) => {
     if (!id) return;
-    const ok = confirm("Bu trade silinsin mi?");
-    if (!ok) return;
 
     const { error } = await supabase.from("trades").delete().eq("id", id);
 
     if (error) {
       console.log("DELETE ERROR:", error);
-      alert(error.message);
+      pushToast("Delete failed", error.message, "error");
       return;
     }
 
     if (selectedTrade?.id === id) closeDrawer();
-    fetchTrades();
+    await fetchTrades();
+    pushToast("Trade deleted", "Kayıt listeden kaldırıldı.", "success");
   };
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
@@ -1045,7 +1192,7 @@ export default function App() {
         <aside className="relative sticky top-0 flex h-screen w-[78px] flex-col items-center gap-3 border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl">
           <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500/0 via-purple-500/30 to-purple-500/0" />
 
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_35px_rgba(168,85,247,0.12)]">
             <img src="/logo-icon.png" alt="TurkoTrades" className="h-9 w-9 object-contain" />
           </div>
 
@@ -1084,7 +1231,7 @@ export default function App() {
           <div className="mx-auto max-w-7xl px-6 py-6">
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-3">
-                <img src="/logo.png" alt="TurkoTrades" className="h-10 md:h-12 w-auto object-contain" />
+                <img src="/logo.png" alt="TurkoTrades" className="h-10 w-auto object-contain md:h-12" />
 
                 <div className="text-xs text-zinc-500">
                   Net: <span className="text-zinc-300">{money(stats.total)}</span> • Balance:{" "}
@@ -1131,718 +1278,841 @@ export default function App() {
                 <button
                   type="button"
                   onClick={fetchTrades}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98]"
                 >
                   Refresh
                 </button>
               </div>
             </div>
 
-            {activeNav === "dashboard" && (
-              <>
-                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-                  <Kpi
-                    title="Net PnL"
-                    value={money(stats.total)}
-                    tone={stats.total >= 0 ? "good" : "bad"}
-                    sub={`${stats.wins}W / ${stats.losses}L`}
-                  />
-                  <Kpi
-                    title="Balance"
-                    value={money(balance)}
-                    tone={balance >= accountSize ? "good" : "bad"}
-                    sub={`Start: ${money(accountSize)}`}
-                  />
-                  <Kpi
-                    title="Profit Factor"
-                    value={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
-                    tone={stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"}
-                    sub="Gross profit / gross loss"
-                  />
-                  <Kpi
-                    title="Avg RR"
-                    value={fmt(stats.avgRR)}
-                    tone={stats.avgRR >= 0.5 ? "good" : stats.avgRR >= 0 ? "neutral" : "bad"}
-                    sub={`Streak: ${streaks.maxWin}W / ${streaks.maxLoss}L`}
-                  />
-                </div>
+            <PageTransition pageKey={activeNav}>
+              {activeNav === "dashboard" && (
+                <>
+                  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <Kpi
+                      title="Net PnL"
+                      value={money(stats.total)}
+                      tone={stats.total >= 0 ? "good" : "bad"}
+                      sub={`${stats.wins}W / ${stats.losses}L`}
+                    />
+                    <Kpi
+                      title="Balance"
+                      value={money(balance)}
+                      tone={balance >= accountSize ? "good" : "bad"}
+                      sub={`Start: ${money(accountSize)}`}
+                    />
+                    <Kpi
+                      title="Profit Factor"
+                      value={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
+                      tone={stats.pf >= 1.5 ? "good" : stats.pf >= 1 ? "neutral" : "bad"}
+                      sub="Gross profit / gross loss"
+                    />
+                    <Kpi
+                      title="Avg RR"
+                      value={fmt(stats.avgRR)}
+                      tone={stats.avgRR >= 0.5 ? "good" : stats.avgRR >= 0 ? "neutral" : "bad"}
+                      sub={`Streak: ${streaks.maxWin}W / ${streaks.maxLoss}L`}
+                    />
+                  </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.05fr_1.35fr]">
-                  <Heatmap
-                    big
-                    monthTitle={monthTitle}
-                    calendar={calendar}
-                    monthCursor={monthCursor}
-                    setMonthCursor={setMonthCursor}
-                  />
-
-                  <Card className="h-full">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Account Growth</div>
-                        <div className="text-xs text-zinc-500">Equity curve</div>
-                      </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        {fmt(returnPct)}%
-                      </span>
-                    </div>
-
-                    <div className="mt-3 h-[340px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={equitySeries}>
-                          <defs>
-                            <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
-                              <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis
-                            dataKey="date"
-                            stroke="rgba(255,255,255,0.45)"
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "Balance"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <Area
-                            type="monotone"
-                            dataKey="equity"
-                            stroke="rgba(168,85,247,0.95)"
-                            strokeWidth={2.6}
-                            fill="url(#eqFill)"
-                            dot={false}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
-                      <MiniKpi
-                        label="Net Growth"
-                        value={money(stats.total)}
-                        tone={stats.total >= 0 ? "good" : "bad"}
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.05fr_1.35fr]">
+                    <AnimatedChart delay={0}>
+                      <Heatmap
+                        big
+                        monthTitle={monthTitle}
+                        calendar={calendar}
+                        monthCursor={monthCursor}
+                        setMonthCursor={setMonthCursor}
                       />
-                      <MiniKpi
-                        label="Return"
-                        value={`${fmt(returnPct)}%`}
-                        tone={returnPct >= 0 ? "good" : "bad"}
-                      />
-                      <MiniKpi
-                        label="Max Drawdown"
-                        value={money(drawdownStats.maxDD)}
-                        tone={drawdownStats.maxDD < 0 ? "bad" : "neutral"}
-                      />
-                      <MiniKpi label="Trades" value={String(stats.count)} tone="neutral" />
-                    </div>
-                  </Card>
-                </div>
+                    </AnimatedChart>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <Card>
-                    <div className="text-sm text-zinc-200">Top Symbol (PnL)</div>
-                    <div className="mt-3">
-                      {bestSymbol ? (
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="text-lg font-semibold">{bestSymbol.symbol}</div>
-                            <div
-                              className={cn(
-                                "text-sm font-semibold",
-                                bestSymbol.pnl >= 0 ? "text-emerald-200" : "text-red-200"
-                              )}
-                            >
-                              {money(bestSymbol.pnl)}
-                            </div>
+                    <AnimatedChart delay={70}>
+                      <Card className="h-full">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-zinc-200">Account Growth</div>
+                            <div className="text-xs text-zinc-500">Equity curve</div>
                           </div>
-                          <div className="mt-1 text-xs text-zinc-500">
-                            {bestSymbol.count} trade • WR {fmt(bestSymbol.winRate)}%
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-sm text-zinc-500">No data.</div>
-                      )}
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {symbolPerf.slice(0, 5).map((s) => (
-                        <div
-                          key={s.symbol}
-                          className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs"
-                        >
-                          <span className="text-zinc-200">{s.symbol}</span>
-                          <span className={cn(s.pnl >= 0 ? "text-emerald-200" : "text-red-200")}>
-                            {money(s.pnl)}
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
+                            {fmt(returnPct)}%
                           </span>
                         </div>
-                      ))}
-                    </div>
-                  </Card>
 
-                  <Card className="lg:col-span-2">
-                    <div className="text-sm text-zinc-200">Day Analysis</div>
-                    <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                      <DayCard
-                        title="Best performing day"
-                        value={dayCards?.bestPnL?.day || "—"}
-                        meta={`${dayCards?.bestPnL?.count || 0} trades`}
-                        badge={dayCards?.bestPnL ? money(dayCards.bestPnL.pnl) : "$0.00"}
-                        tone="good"
-                      />
-                      <DayCard
-                        title="Least performing day"
-                        value={dayCards?.worstPnL?.day || "—"}
-                        meta={`${dayCards?.worstPnL?.count || 0} trades`}
-                        badge={dayCards?.worstPnL ? money(dayCards.worstPnL.pnl) : "$0.00"}
-                        tone="bad"
-                      />
-                      <DayCard
-                        title="Most active day"
-                        value={dayCards?.mostActive?.day || "—"}
-                        meta={`${dayCards?.mostActive?.count || 0} trades`}
-                        badge="Active"
-                        tone="neutral"
-                      />
-                      <DayCard
-                        title="Best win rate day"
-                        value={dayCards?.bestWR?.day || "—"}
-                        meta={`${dayCards?.bestWR?.count || 0} trades`}
-                        badge={`${fmt(dayCards?.bestWR?.winRate || 0)}%`}
-                        tone="good"
-                      />
-                    </div>
-                  </Card>
-                </div>
+                        {equitySeries.length ? (
+                          <>
+                            <div className="mt-3 h-[340px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={equitySeries}>
+                                  <defs>
+                                    <linearGradient id="eqFill" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
+                                      <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                  <XAxis
+                                    dataKey="date"
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                  />
+                                  <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                                  <Tooltip
+                                    formatter={(v) => [money(v), "Balance"]}
+                                    contentStyle={{
+                                      background: "rgba(9,9,11,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      borderRadius: 14,
+                                    }}
+                                  />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="equity"
+                                    stroke="rgba(168,85,247,0.95)"
+                                    strokeWidth={2.6}
+                                    fill="url(#eqFill)"
+                                    dot={false}
+                                  />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <NewTradeForm
-                    subtitle="Dashboard quick add"
-                    form={form}
-                    setForm={setForm}
-                    handleSubmit={handleSubmit}
-                    sessionOptions={SESSION_OPTIONS}
-                    pointValue={pointValue}
-                  />
+                            <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+                              <MiniKpi
+                                label="Net Growth"
+                                value={money(stats.total)}
+                                tone={stats.total >= 0 ? "good" : "bad"}
+                              />
+                              <MiniKpi
+                                label="Return"
+                                value={`${fmt(returnPct)}%`}
+                                tone={returnPct >= 0 ? "good" : "bad"}
+                              />
+                              <MiniKpi
+                                label="Max Drawdown"
+                                value={money(drawdownStats.maxDD)}
+                                tone={drawdownStats.maxDD < 0 ? "bad" : "neutral"}
+                              />
+                              <MiniKpi label="Trades" value={String(stats.count)} tone="neutral" />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-4">
+                            <EmptyState
+                              compact
+                              title="No equity data yet"
+                              text="İlk trade’i eklediğinde growth chart burada akmaya başlayacak."
+                            />
+                          </div>
+                        )}
+                      </Card>
+                    </AnimatedChart>
+                  </div>
 
-                  <Card className="lg:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Recent Trades</div>
-                        <div className="text-xs text-zinc-500">Last 15 entries</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-white/5 text-zinc-300">
-                          <tr>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">Symbol</th>
-                            <th className="px-4 py-3">Session</th>
-                            <th className="px-4 py-3">Risk</th>
-                            <th className="px-4 py-3">PnL</th>
-                            <th className="px-4 py-3">RR</th>
-                            <th className="px-4 py-3">Notes</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                          {filtered
-                            .slice(-15)
-                            .slice()
-                            .reverse()
-                            .map((t) => (
-                              <tr
-                                key={t.id}
-                                className="cursor-pointer hover:bg-white/5"
-                                onClick={() => openTrade(t)}
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <Card>
+                      <div className="text-sm text-zinc-200">Top Symbol (PnL)</div>
+                      <div className="mt-3">
+                        {bestSymbol ? (
+                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="text-lg font-semibold">{bestSymbol.symbol}</div>
+                              <div
+                                className={cn(
+                                  "text-sm font-semibold",
+                                  bestSymbol.pnl >= 0 ? "text-emerald-200" : "text-red-200"
+                                )}
                               >
-                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
-                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
-                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
-                                    ? `${t.risk_pct}%`
-                                    : "—"}
-                                </td>
-                                <td
-                                  className={cn(
-                                    "px-4 py-3 font-medium",
-                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
-                                  )}
-                                >
-                                  {money(t.pnl)}
-                                </td>
-                                <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
-                                <td className="px-4 py-3">
-                                  <div className="max-w-[420px] truncate text-zinc-300">
-                                    {(t.notes || "").trim() || "—"}
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Dashboard • Supabase</div>
-              </>
-            )}
-
-            {activeNav === "trades" && (
-              <>
-                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
-                  <MiniStat
-                    title="Net PnL"
-                    value={money(stats.total)}
-                    subtitle={`${stats.count} trades • Balance ${money(balance)}`}
-                    good={stats.total >= 0}
-                    series={equitySeries.map((x) => x.equity)}
-                  />
-                  <RingStat
-                    title="Profit Factor"
-                    value={stats.pf >= 999 ? 3 : stats.pf}
-                    label={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
-                    kind="pf"
-                  />
-                  <RingStat
-                    title="Trade Win %"
-                    value={stats.winRate / 100}
-                    label={`${fmt(stats.winRate)}%`}
-                    kind="wr"
-                  />
-                  <BarStat title="Avg win/loss" left={stats.avgWin} right={Math.abs(stats.avgLoss)} />
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <Card>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Drawdown</div>
-                        <div className="text-xs text-zinc-500">Peak-to-trough</div>
-                      </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        {drawdownSeries.length} pts
-                      </span>
-                    </div>
-
-                    <div className="mt-3 h-[320px] w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={drawdownSeries}>
-                          <defs>
-                            <linearGradient id="ddFill" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="rgba(239,68,68,0.45)" />
-                              <stop offset="100%" stopColor="rgba(239,68,68,0.00)" />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                          <XAxis
-                            dataKey="date"
-                            stroke="rgba(255,255,255,0.45)"
-                            tick={{ fontSize: 12 }}
-                          />
-                          <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(v) => [money(v), "Drawdown"]}
-                            contentStyle={{
-                              background: "rgba(9,9,11,0.92)",
-                              border: "1px solid rgba(255,255,255,0.12)",
-                              borderRadius: 14,
-                            }}
-                          />
-                          <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
-                          <Area
-                            type="monotone"
-                            dataKey="drawdown"
-                            stroke="rgba(239,68,68,0.9)"
-                            strokeWidth={2.2}
-                            fill="url(#ddFill)"
-                            dot={false}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                        <div className="text-[11px] text-zinc-400">Max Drawdown</div>
-                        <div className="mt-1 text-sm font-semibold text-red-200">
-                          {money(drawdownStats.maxDD)}
-                        </div>
-                      </div>
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                        <div className="text-[11px] text-zinc-400">Avg Drawdown</div>
-                        <div className="mt-1 text-sm font-semibold text-zinc-200">
-                          {money(drawdownStats.avgDD)}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-
-                  <Card>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Session Performance</div>
-                        <div className="text-xs text-zinc-500">London / NY AM / NY PM</div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {sessionPerf.length ? (
-                        sessionPerf.slice(0, 6).map((s) => (
-                          <div
-                            key={s.session}
-                            className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs"
-                          >
-                            <div>
-                              <div className="text-zinc-200">{s.session}</div>
-                              <div className="text-[11px] text-zinc-500">
-                                {s.count} trade • WR {fmt(s.winRate)}%
+                                {money(bestSymbol.pnl)}
                               </div>
                             </div>
-                            <div
-                              className={cn(
-                                "font-semibold",
-                                s.pnl >= 0 ? "text-emerald-200" : "text-red-200"
-                              )}
-                            >
-                              {money(s.pnl)}
+                            <div className="mt-1 text-xs text-zinc-500">
+                              {bestSymbol.count} trade • WR {fmt(bestSymbol.winRate)}%
                             </div>
                           </div>
-                        ))
+                        ) : (
+                          <EmptyState
+                            compact
+                            title="No symbol stats"
+                            text="Sembol bazlı performans için biraz trade lazım."
+                          />
+                        )}
+                      </div>
+
+                      {symbolPerf.length ? (
+                        <div className="mt-3 space-y-2">
+                          {symbolPerf.slice(0, 5).map((s) => (
+                            <div
+                              key={s.symbol}
+                              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:border-white/20 hover:bg-white/[0.07]"
+                            >
+                              <span className="text-zinc-200">{s.symbol}</span>
+                              <span className={cn(s.pnl >= 0 ? "text-emerald-200" : "text-red-200")}>
+                                {money(s.pnl)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </Card>
+
+                    <Card className="lg:col-span-2">
+                      <div className="text-sm text-zinc-200">Day Analysis</div>
+
+                      {dayCards?.bestPnL ? (
+                        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                          <DayCard
+                            title="Best performing day"
+                            value={dayCards?.bestPnL?.day || "—"}
+                            meta={`${dayCards?.bestPnL?.count || 0} trades`}
+                            badge={dayCards?.bestPnL ? money(dayCards.bestPnL.pnl) : "$0.00"}
+                            tone="good"
+                          />
+                          <DayCard
+                            title="Least performing day"
+                            value={dayCards?.worstPnL?.day || "—"}
+                            meta={`${dayCards?.worstPnL?.count || 0} trades`}
+                            badge={dayCards?.worstPnL ? money(dayCards.worstPnL.pnl) : "$0.00"}
+                            tone="bad"
+                          />
+                          <DayCard
+                            title="Most active day"
+                            value={dayCards?.mostActive?.day || "—"}
+                            meta={`${dayCards?.mostActive?.count || 0} trades`}
+                            badge="Active"
+                            tone="neutral"
+                          />
+                          <DayCard
+                            title="Best win rate day"
+                            value={dayCards?.bestWR?.day || "—"}
+                            meta={`${dayCards?.bestWR?.count || 0} trades`}
+                            badge={`${fmt(dayCards?.bestWR?.winRate || 0)}%`}
+                            tone="good"
+                          />
+                        </div>
                       ) : (
-                        <div className="text-sm text-zinc-500">No data.</div>
+                        <div className="mt-3">
+                          <EmptyState
+                            compact
+                            title="No day analysis yet"
+                            text="Haftanın gün bazlı istatistikleri trade geldikçe oluşacak."
+                          />
+                        </div>
                       )}
-                    </div>
+                    </Card>
+                  </div>
 
-                    <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-                      Streak: <span className="text-zinc-200">{streaks.maxWin}W</span> /{" "}
-                      <span className="text-zinc-200">{streaks.maxLoss}L</span> • Avg RR:{" "}
-                      <span className="text-zinc-200">{fmt(stats.avgRR)}</span>
-                    </div>
-                  </Card>
-                </div>
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <NewTradeForm
+                      subtitle="Dashboard quick add"
+                      form={form}
+                      setForm={setForm}
+                      handleSubmit={handleSubmit}
+                      sessionOptions={SESSION_OPTIONS}
+                      pointValue={pointValue}
+                    />
 
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  <NewTradeForm
-                    subtitle="Hızlı ekleme"
-                    form={form}
-                    setForm={setForm}
-                    handleSubmit={handleSubmit}
-                    sessionOptions={SESSION_OPTIONS}
-                    pointValue={pointValue}
-                  />
-
-                  <Card className="lg:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-sm text-zinc-200">Trades</div>
-                        <div className="text-xs text-zinc-500">Click row → right panel</div>
+                    <Card className="lg:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-zinc-200">Recent Trades</div>
+                          <div className="text-xs text-zinc-500">Last 15 entries</div>
+                        </div>
                       </div>
-                      <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                        Table
-                      </span>
-                    </div>
 
-                    <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
-                      <table className="w-full text-left text-sm">
-                        <thead className="bg-white/5 text-zinc-300">
-                          <tr>
-                            <th className="px-4 py-3">Date</th>
-                            <th className="px-4 py-3">Symbol</th>
-                            <th className="px-4 py-3">Dir</th>
-                            <th className="px-4 py-3">Session</th>
-                            <th className="px-4 py-3">Risk</th>
-                            <th className="px-4 py-3">Entry</th>
-                            <th className="px-4 py-3">Exit</th>
-                            <th className="px-4 py-3">PnL</th>
-                            <th className="px-4 py-3">RR</th>
-                            <th className="px-4 py-3">Notes</th>
-                            <th className="px-4 py-3">SS</th>
-                            <th className="px-4 py-3 text-right">Actions</th>
-                          </tr>
-                        </thead>
-
-                        <tbody className="divide-y divide-white/5">
-                          {filtered
-                            .slice()
-                            .reverse()
-                            .slice(0, 80)
-                            .reverse()
-                            .map((t) => (
-                              <tr
-                                key={t.id}
-                                className="cursor-pointer hover:bg-white/5"
-                                onClick={() => openTrade(t)}
-                              >
-                                <td className="px-4 py-3 text-zinc-400">{t.date}</td>
-                                <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
-
-                                <td className="px-4 py-3">
-                                  <span
-                                    className={cn(
-                                      "rounded-full border px-2 py-1 text-[10px]",
-                                      t.direction === "LONG"
-                                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                                        : "border-red-500/30 bg-red-500/10 text-red-200"
-                                    )}
-                                  >
-                                    {t.direction}
-                                  </span>
-                                </td>
-
-                                <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
-
-                                <td className="px-4 py-3 text-zinc-300">
-                                  {t.risk_pct !== undefined && t.risk_pct !== null && t.risk_pct !== ""
-                                    ? `${t.risk_pct}%`
-                                    : "—"}
-                                </td>
-
-                                <td className="px-4 py-3 text-zinc-300">{t.entry ?? "—"}</td>
-                                <td className="px-4 py-3 text-zinc-300">{t.exit ?? "—"}</td>
-
-                                <td
-                                  className={cn(
-                                    "px-4 py-3 font-medium",
-                                    Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
-                                  )}
-                                >
-                                  {money(t.pnl)}
-                                </td>
-
-                                <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
-
-                                <td className="px-4 py-3">
-                                  <div className="max-w-[220px] truncate text-zinc-300">
-                                    {(t.notes || "").trim() || "—"}
-                                  </div>
-                                </td>
-
-                                <td className="px-4 py-3">
-                                  {t.screenshot_url ? (
-                                    <a
-                                      href={t.screenshot_url}
-                                      target="_blank"
-                                      rel="noreferrer"
-                                      className="text-purple-300 hover:underline"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      Open ↗
-                                    </a>
-                                  ) : (
-                                    <span className="text-zinc-500">—</span>
-                                  )}
-                                </td>
-
-                                <td className="px-4 py-3 text-right">
-                                  <button
-                                    type="button"
-                                    className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 hover:bg-red-500/20"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDelete(t.id);
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                </td>
+                      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                        {filtered.length ? (
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-zinc-300">
+                              <tr>
+                                <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Symbol</th>
+                                <th className="px-4 py-3">Session</th>
+                                <th className="px-4 py-3">Risk</th>
+                                <th className="px-4 py-3">PnL</th>
+                                <th className="px-4 py-3">RR</th>
+                                <th className="px-4 py-3">Notes</th>
                               </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </Card>
-                </div>
-
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
-                  Trades • right panel
-                </div>
-              </>
-            )}
-
-            {activeNav === "calendar" && (
-              <>
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
-                  <Heatmap
-                    big
-                    monthTitle={monthTitle}
-                    calendar={calendar}
-                    monthCursor={monthCursor}
-                    setMonthCursor={setMonthCursor}
-                  />
-
-                  <div className="space-y-4">
-                    <Card>
-                      <div className="text-sm text-zinc-200">Daily Net PnL</div>
-                      <div className="mt-3 h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={calendarCharts.daily}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                            <XAxis
-                              dataKey="day"
-                              stroke="rgba(255,255,255,0.45)"
-                              tick={{ fontSize: 12 }}
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                              {filtered
+                                .slice(-15)
+                                .slice()
+                                .reverse()
+                                .map((t) => (
+                                  <tr
+                                    key={t.id}
+                                    className="cursor-pointer transition hover:bg-white/[0.06]"
+                                    onClick={() => openTrade(t)}
+                                  >
+                                    <td className="px-4 py-3 text-zinc-400">{t.date}</td>
+                                    <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
+                                    <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
+                                    <td className="px-4 py-3 text-zinc-300">
+                                      {t.risk_pct !== undefined &&
+                                      t.risk_pct !== null &&
+                                      t.risk_pct !== ""
+                                        ? `${t.risk_pct}%`
+                                        : "—"}
+                                    </td>
+                                    <td
+                                      className={cn(
+                                        "px-4 py-3 font-medium",
+                                        Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
+                                      )}
+                                    >
+                                      {money(t.pnl)}
+                                    </td>
+                                    <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
+                                    <td className="px-4 py-3">
+                                      <div className="max-w-[420px] truncate text-zinc-300">
+                                        {(t.notes || "").trim() || "—"}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="p-5">
+                            <EmptyState
+                              title="No trades yet"
+                              text="İlk trade’i ekle, son işlemler burada listelensin."
                             />
-                            <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
-                            <Tooltip
-                              formatter={(v) => [money(v), "PnL"]}
-                              contentStyle={{
-                                background: "rgba(9,9,11,0.92)",
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                borderRadius: 14,
-                              }}
-                            />
-                            <Bar dataKey="pnl">
-                              {(calendarCharts.daily || []).map((x, i) => (
-                                <Cell
-                                  key={i}
-                                  fill={
-                                    x.pnl > 0
-                                      ? "rgba(34,197,94,0.65)"
-                                      : x.pnl < 0
-                                      ? "rgba(239,68,68,0.65)"
-                                      : "rgba(255,255,255,0.18)"
-                                  }
-                                />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </Card>
-
-                    <Card>
-                      <div className="text-sm text-zinc-200">Daily Trade Count</div>
-                      <div className="mt-3 h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={calendarCharts.daily}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                            <XAxis
-                              dataKey="day"
-                              stroke="rgba(255,255,255,0.45)"
-                              tick={{ fontSize: 12 }}
-                            />
-                            <YAxis
-                              stroke="rgba(255,255,255,0.45)"
-                              tick={{ fontSize: 12 }}
-                              allowDecimals={false}
-                            />
-                            <Tooltip
-                              formatter={(v) => [v, "Trades"]}
-                              contentStyle={{
-                                background: "rgba(9,9,11,0.92)",
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                borderRadius: 14,
-                              }}
-                            />
-                            <Bar dataKey="count" fill="rgba(168,85,247,0.55)" />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </Card>
-
-                    <Card>
-                      <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
-                      <div className="mt-3 h-[220px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={calendarCharts.cumulative}>
-                            <defs>
-                              <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
-                                <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                            <XAxis
-                              dataKey="day"
-                              stroke="rgba(255,255,255,0.45)"
-                              tick={{ fontSize: 12 }}
-                            />
-                            <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
-                            <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
-                            <Tooltip
-                              formatter={(v) => [money(v), "Cum PnL"]}
-                              contentStyle={{
-                                background: "rgba(9,9,11,0.92)",
-                                border: "1px solid rgba(255,255,255,0.12)",
-                                borderRadius: 14,
-                              }}
-                            />
-                            <Area
-                              type="monotone"
-                              dataKey="cumPnL"
-                              stroke="rgba(168,85,247,0.95)"
-                              strokeWidth={2.2}
-                              fill="url(#cumFill)"
-                              dot={false}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
+                          </div>
+                        )}
                       </div>
                     </Card>
                   </div>
-                </div>
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Calendar • monthly view</div>
-              </>
-            )}
+                  <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Dashboard • Supabase</div>
+                </>
+              )}
 
-            {activeNav === "settings" && (
-              <>
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <Card>
-                    <div className="text-sm text-zinc-200">Settings</div>
+              {activeNav === "trades" && (
+                <>
+                  <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
+                    <MiniStat
+                      title="Net PnL"
+                      value={money(stats.total)}
+                      subtitle={`${stats.count} trades • Balance ${money(balance)}`}
+                      good={stats.total >= 0}
+                      series={equitySeries.map((x) => x.equity)}
+                    />
+                    <RingStat
+                      title="Profit Factor"
+                      value={stats.pf >= 999 ? 3 : stats.pf}
+                      label={stats.pf >= 999 ? "∞" : fmt(stats.pf)}
+                      kind="pf"
+                    />
+                    <RingStat
+                      title="Trade Win %"
+                      value={stats.winRate / 100}
+                      label={`${fmt(stats.winRate)}%`}
+                      kind="wr"
+                    />
+                    <BarStat title="Avg win/loss" left={stats.avgWin} right={Math.abs(stats.avgLoss)} />
+                  </div>
 
-                    <div className="mt-4 space-y-3">
-                      <label className="block">
-                        <div className="mb-1 text-xs text-zinc-400">Starting Balance</div>
-                        <input
-                          value={accountSize}
-                          onChange={(e) => setAccountSize(Number(e.target.value))}
-                          type="number"
-                          className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none"
-                        />
-                      </label>
-
-                      <label className="block">
-                        <div className="mb-1 text-xs text-zinc-400">Point Value (Auto PnL)</div>
-                        <input
-                          value={pointValue}
-                          onChange={(e) => setPointValue(Number(e.target.value))}
-                          type="number"
-                          step="0.01"
-                          className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none"
-                        />
-                        <div className="mt-1 text-[11px] text-zinc-500">
-                          Auto PnL: (Exit-Entry) × Point Value
+                  <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <AnimatedChart delay={0}>
+                      <Card>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-zinc-200">Drawdown</div>
+                            <div className="text-xs text-zinc-500">Peak-to-trough</div>
+                          </div>
+                          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
+                            {drawdownSeries.length} pts
+                          </span>
                         </div>
-                      </label>
 
-                      <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-                        Avg RR: <span className="text-zinc-200">{fmt(stats.avgRR)}</span> • PF:{" "}
-                        <span className="text-zinc-200">{stats.pf >= 999 ? "∞" : fmt(stats.pf)}</span>
+                        {drawdownSeries.length ? (
+                          <>
+                            <div className="mt-3 h-[320px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={drawdownSeries}>
+                                  <defs>
+                                    <linearGradient id="ddFill" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="0%" stopColor="rgba(239,68,68,0.45)" />
+                                      <stop offset="100%" stopColor="rgba(239,68,68,0.00)" />
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                  <XAxis
+                                    dataKey="date"
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                  />
+                                  <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                                  <Tooltip
+                                    formatter={(v) => [money(v), "Drawdown"]}
+                                    contentStyle={{
+                                      background: "rgba(9,9,11,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      borderRadius: 14,
+                                    }}
+                                  />
+                                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="drawdown"
+                                    stroke="rgba(239,68,68,0.9)"
+                                    strokeWidth={2.2}
+                                    fill="url(#ddFill)"
+                                    dot={false}
+                                  />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-2 gap-2">
+                              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                <div className="text-[11px] text-zinc-400">Max Drawdown</div>
+                                <div className="mt-1 text-sm font-semibold text-red-200">
+                                  {money(drawdownStats.maxDD)}
+                                </div>
+                              </div>
+                              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                <div className="text-[11px] text-zinc-400">Avg Drawdown</div>
+                                <div className="mt-1 text-sm font-semibold text-zinc-200">
+                                  {money(drawdownStats.avgDD)}
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="mt-4">
+                            <EmptyState
+                              compact
+                              title="No drawdown data"
+                              text="Önce equity oluşsun, sonra drawdown burada görünür."
+                            />
+                          </div>
+                        )}
+                      </Card>
+                    </AnimatedChart>
+
+                    <AnimatedChart delay={70}>
+                      <Card>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-zinc-200">Session Performance</div>
+                            <div className="text-xs text-zinc-500">London / NY AM / NY PM</div>
+                          </div>
+                        </div>
+
+                        {sessionPerf.length ? (
+                          <div className="mt-3 space-y-2">
+                            {sessionPerf.slice(0, 6).map((s) => (
+                              <div
+                                key={s.session}
+                                className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:border-white/20 hover:bg-white/[0.07]"
+                              >
+                                <div>
+                                  <div className="text-zinc-200">{s.session}</div>
+                                  <div className="text-[11px] text-zinc-500">
+                                    {s.count} trade • WR {fmt(s.winRate)}%
+                                  </div>
+                                </div>
+                                <div
+                                  className={cn(
+                                    "font-semibold",
+                                    s.pnl >= 0 ? "text-emerald-200" : "text-red-200"
+                                  )}
+                                >
+                                  {money(s.pnl)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="mt-3">
+                            <EmptyState
+                              compact
+                              title="No session stats"
+                              text="Session bazlı analiz için yeterli kayıt yok."
+                            />
+                          </div>
+                        )}
+
+                        <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
+                          Streak: <span className="text-zinc-200">{streaks.maxWin}W</span> /{" "}
+                          <span className="text-zinc-200">{streaks.maxLoss}L</span> • Avg RR:{" "}
+                          <span className="text-zinc-200">{fmt(stats.avgRR)}</span>
+                        </div>
+                      </Card>
+                    </AnimatedChart>
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                    <NewTradeForm
+                      subtitle="Hızlı ekleme"
+                      form={form}
+                      setForm={setForm}
+                      handleSubmit={handleSubmit}
+                      sessionOptions={SESSION_OPTIONS}
+                      pointValue={pointValue}
+                    />
+
+                    <Card className="lg:col-span-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-zinc-200">Trades</div>
+                          <div className="text-xs text-zinc-500">Click row → right panel</div>
+                        </div>
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
+                          Table
+                        </span>
                       </div>
+
+                      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                        {filtered.length ? (
+                          <table className="w-full text-left text-sm">
+                            <thead className="bg-white/5 text-zinc-300">
+                              <tr>
+                                <th className="px-4 py-3">Date</th>
+                                <th className="px-4 py-3">Symbol</th>
+                                <th className="px-4 py-3">Dir</th>
+                                <th className="px-4 py-3">Session</th>
+                                <th className="px-4 py-3">Risk</th>
+                                <th className="px-4 py-3">Entry</th>
+                                <th className="px-4 py-3">Exit</th>
+                                <th className="px-4 py-3">PnL</th>
+                                <th className="px-4 py-3">RR</th>
+                                <th className="px-4 py-3">Notes</th>
+                                <th className="px-4 py-3">SS</th>
+                                <th className="px-4 py-3 text-right">Actions</th>
+                              </tr>
+                            </thead>
+
+                            <tbody className="divide-y divide-white/5">
+                              {filtered
+                                .slice()
+                                .reverse()
+                                .slice(0, 80)
+                                .reverse()
+                                .map((t) => (
+                                  <tr
+                                    key={t.id}
+                                    className="cursor-pointer transition hover:bg-white/[0.06]"
+                                    onClick={() => openTrade(t)}
+                                  >
+                                    <td className="px-4 py-3 text-zinc-400">{t.date}</td>
+                                    <td className="px-4 py-3">{(t.symbol || "").toUpperCase()}</td>
+
+                                    <td className="px-4 py-3">
+                                      <span
+                                        className={cn(
+                                          "rounded-full border px-2 py-1 text-[10px]",
+                                          t.direction === "LONG"
+                                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
+                                            : "border-red-500/30 bg-red-500/10 text-red-200"
+                                        )}
+                                      >
+                                        {t.direction}
+                                      </span>
+                                    </td>
+
+                                    <td className="px-4 py-3 text-zinc-300">{t.session || "—"}</td>
+
+                                    <td className="px-4 py-3 text-zinc-300">
+                                      {t.risk_pct !== undefined &&
+                                      t.risk_pct !== null &&
+                                      t.risk_pct !== ""
+                                        ? `${t.risk_pct}%`
+                                        : "—"}
+                                    </td>
+
+                                    <td className="px-4 py-3 text-zinc-300">{t.entry ?? "—"}</td>
+                                    <td className="px-4 py-3 text-zinc-300">{t.exit ?? "—"}</td>
+
+                                    <td
+                                      className={cn(
+                                        "px-4 py-3 font-medium",
+                                        Number(t.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
+                                      )}
+                                    >
+                                      {money(t.pnl)}
+                                    </td>
+
+                                    <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
+
+                                    <td className="px-4 py-3">
+                                      <div className="max-w-[220px] truncate text-zinc-300">
+                                        {(t.notes || "").trim() || "—"}
+                                      </div>
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                      {t.screenshot_url ? (
+                                        <a
+                                          href={t.screenshot_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="text-purple-300 hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          Open ↗
+                                        </a>
+                                      ) : (
+                                        <span className="text-zinc-500">—</span>
+                                      )}
+                                    </td>
+
+                                    <td className="px-4 py-3 text-right">
+                                      <button
+                                        type="button"
+                                        className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs text-red-200 transition hover:bg-red-500/20 active:scale-[0.98]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          askDeleteTrade(t.id, "table");
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        ) : (
+                          <div className="p-5">
+                            <EmptyState
+                              title="No trades in this filter"
+                              text="Filtreleri genişlet ya da yeni trade ekle."
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+
+                  <div className="mt-8 pb-10 text-center text-xs text-zinc-500">
+                    Trades • right panel
+                  </div>
+                </>
+              )}
+
+              {activeNav === "calendar" && (
+                <>
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
+                    <AnimatedChart delay={0}>
+                      <Heatmap
+                        big
+                        monthTitle={monthTitle}
+                        calendar={calendar}
+                        monthCursor={monthCursor}
+                        setMonthCursor={setMonthCursor}
+                      />
+                    </AnimatedChart>
+
+                    <div className="space-y-4">
+                      <AnimatedChart delay={40}>
+                        <Card>
+                          <div className="text-sm text-zinc-200">Daily Net PnL</div>
+                          {calendarCharts.daily.some((x) => x.pnl !== 0) ? (
+                            <div className="mt-3 h-[220px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={calendarCharts.daily}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                  <XAxis
+                                    dataKey="day"
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                  />
+                                  <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
+                                  <Tooltip
+                                    formatter={(v) => [money(v), "PnL"]}
+                                    contentStyle={{
+                                      background: "rgba(9,9,11,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      borderRadius: 14,
+                                    }}
+                                  />
+                                  <Bar dataKey="pnl">
+                                    {(calendarCharts.daily || []).map((x, i) => (
+                                      <Cell
+                                        key={i}
+                                        fill={
+                                          x.pnl > 0
+                                            ? "rgba(34,197,94,0.65)"
+                                            : x.pnl < 0
+                                            ? "rgba(239,68,68,0.65)"
+                                            : "rgba(255,255,255,0.18)"
+                                        }
+                                      />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          ) : (
+                            <div className="mt-3">
+                              <EmptyState
+                                compact
+                                title="No daily PnL"
+                                text="Seçili ayda henüz hareket yok."
+                              />
+                            </div>
+                          )}
+                        </Card>
+                      </AnimatedChart>
+
+                      <AnimatedChart delay={90}>
+                        <Card>
+                          <div className="text-sm text-zinc-200">Daily Trade Count</div>
+                          {calendarCharts.daily.some((x) => x.count !== 0) ? (
+                            <div className="mt-3 h-[220px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={calendarCharts.daily}>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                  <XAxis
+                                    dataKey="day"
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                  />
+                                  <YAxis
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                    allowDecimals={false}
+                                  />
+                                  <Tooltip
+                                    formatter={(v) => [v, "Trades"]}
+                                    contentStyle={{
+                                      background: "rgba(9,9,11,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      borderRadius: 14,
+                                    }}
+                                  />
+                                  <Bar dataKey="count" fill="rgba(168,85,247,0.55)" />
+                                </BarChart>
+                              </ResponsiveContainer>
+                            </div>
+                          ) : (
+                            <div className="mt-3">
+                              <EmptyState
+                                compact
+                                title="No trade count"
+                                text="Bu ay için işlem sayısı henüz oluşmadı."
+                              />
+                            </div>
+                          )}
+                        </Card>
+                      </AnimatedChart>
+
+                      <AnimatedChart delay={140}>
+                        <Card>
+                          <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
+                          {calendarCharts.cumulative.some((x) => x.cumPnL !== 0) ? (
+                            <div className="mt-3 h-[220px] w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={calendarCharts.cumulative}>
+                                  <defs>
+                                    <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
+                                      <stop offset="100%" stopColor="rgba(168,85,247,0.00)" />
+                                    </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                                  <XAxis
+                                    dataKey="day"
+                                    stroke="rgba(255,255,255,0.45)"
+                                    tick={{ fontSize: 12 }}
+                                  />
+                                  <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
+                                  <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
+                                  <Tooltip
+                                    formatter={(v) => [money(v), "Cum PnL"]}
+                                    contentStyle={{
+                                      background: "rgba(9,9,11,0.92)",
+                                      border: "1px solid rgba(255,255,255,0.12)",
+                                      borderRadius: 14,
+                                    }}
+                                  />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="cumPnL"
+                                    stroke="rgba(168,85,247,0.95)"
+                                    strokeWidth={2.2}
+                                    fill="url(#cumFill)"
+                                    dot={false}
+                                  />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          ) : (
+                            <div className="mt-3">
+                              <EmptyState
+                                compact
+                                title="No cumulative curve"
+                                text="PnL akışı geldiğinde grafik burada yükselecek."
+                              />
+                            </div>
+                          )}
+                        </Card>
+                      </AnimatedChart>
                     </div>
-                  </Card>
+                  </div>
 
-                  <Card>
-                    <div className="text-sm text-zinc-200">Danger Zone</div>
-                    <div className="mt-4 text-xs text-zinc-400"></div>
-                  </Card>
-                </div>
+                  <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Calendar • monthly view</div>
+                </>
+              )}
 
-                <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Settings</div>
-              </>
-            )}
+              {activeNav === "settings" && (
+                <>
+                  <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <Card>
+                      <div className="text-sm text-zinc-200">Settings</div>
+
+                      <div className="mt-4 space-y-3">
+                        <label className="block">
+                          <div className="mb-1 text-xs text-zinc-400">Starting Balance</div>
+                          <input
+                            value={accountSize}
+                            onChange={(e) => setAccountSize(Number(e.target.value))}
+                            type="number"
+                            className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-500/40"
+                          />
+                        </label>
+
+                        <label className="block">
+                          <div className="mb-1 text-xs text-zinc-400">Point Value (Auto PnL)</div>
+                          <input
+                            value={pointValue}
+                            onChange={(e) => setPointValue(Number(e.target.value))}
+                            type="number"
+                            step="0.01"
+                            className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-500/40"
+                          />
+                          <div className="mt-1 text-[11px] text-zinc-500">
+                            Auto PnL: (Exit-Entry) × Point Value
+                          </div>
+                        </label>
+
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
+                          Avg RR: <span className="text-zinc-200">{fmt(stats.avgRR)}</span> • PF:{" "}
+                          <span className="text-zinc-200">{stats.pf >= 999 ? "∞" : fmt(stats.pf)}</span>
+                        </div>
+                      </div>
+                    </Card>
+
+                    <Card>
+                      <div className="text-sm text-zinc-200">Danger Zone</div>
+                      <div className="mt-4">
+                        <EmptyState
+                          compact
+                          title="Reserved area"
+                          text="Buraya ileride export, reset, backup gibi gelişmiş ayarlar koyabiliriz."
+                        />
+                      </div>
+                    </Card>
+                  </div>
+
+                  <div className="mt-8 pb-10 text-center text-xs text-zinc-500">Settings</div>
+                </>
+              )}
+            </PageTransition>
           </div>
         </main>
       </div>
@@ -1850,7 +2120,7 @@ export default function App() {
       <div className={cn("fixed inset-0 z-50", drawerOpen ? "pointer-events-auto" : "pointer-events-none")}>
         <div
           className={cn(
-            "absolute inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity",
+            "absolute inset-0 bg-black/50 backdrop-blur-[2px] transition-opacity duration-300",
             drawerOpen ? "opacity-100" : "opacity-0"
           )}
           onClick={closeDrawer}
@@ -1858,7 +2128,7 @@ export default function App() {
 
         <div
           className={cn(
-            "absolute right-0 top-0 h-full w-full max-w-[520px] border-l border-white/10 bg-zinc-950/60 backdrop-blur-xl transition-transform duration-200",
+            "absolute right-0 top-0 h-full w-full max-w-[520px] border-l border-white/10 bg-zinc-950/70 backdrop-blur-xl transition-transform duration-300",
             drawerOpen ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -1866,12 +2136,12 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="text-sm font-medium text-zinc-200">Trade Detail</div>
-                <div className="text-xs text-zinc-500"></div>
+                <div className="text-xs text-zinc-500">Right drawer</div>
               </div>
 
               <button
                 type="button"
-                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10"
+                className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98]"
                 onClick={closeDrawer}
               >
                 Close
@@ -1882,7 +2152,12 @@ export default function App() {
               {!selectedTrade ? (
                 <div className="text-sm text-zinc-400">No selection.</div>
               ) : (
-                <div className="space-y-4">
+                <div
+                  className={cn(
+                    "space-y-4 transition-all duration-300",
+                    drawerOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                  )}
+                >
                   <div className="grid grid-cols-2 gap-3">
                     <Info label="Symbol" value={(selectedTrade.symbol || "").toUpperCase()} />
                     <Info label="Direction" value={selectedTrade.direction} />
@@ -1956,8 +2231,8 @@ export default function App() {
                   <div className="flex justify-end">
                     <button
                       type="button"
-                      className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/20"
-                      onClick={() => handleDelete(selectedTrade.id)}
+                      className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/20 active:scale-[0.98]"
+                      onClick={() => askDeleteTrade(selectedTrade.id, "drawer")}
                     >
                       Delete trade
                     </button>
@@ -1966,10 +2241,27 @@ export default function App() {
               )}
             </div>
 
-            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500"></div>
+            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500">
+              TurkoTrades • detail panel
+            </div>
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmDelete.open}
+        title="Delete trade?"
+        description="Bu işlem geri alınmaz. Seçili trade kalıcı olarak silinecek."
+        confirmText="Delete"
+        onCancel={() => setConfirmDelete({ open: false, id: null, source: null })}
+        onConfirm={async () => {
+          const id = confirmDelete.id;
+          setConfirmDelete({ open: false, id: null, source: null });
+          await handleDelete(id);
+        }}
+      />
+
+      <ToastViewport toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }
@@ -1978,7 +2270,7 @@ function Card({ className, children }) {
   return (
     <div
       className={cn(
-        "relative rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur",
+        "relative rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]",
         className
       )}
     >
@@ -1996,7 +2288,7 @@ function MiniKpi({ label, value, tone = "neutral" }) {
       : "border-white/10 bg-white/5 text-zinc-200";
 
   return (
-    <div className={cn("rounded-xl border p-3", t)}>
+    <div className={cn("rounded-xl border p-3 transition hover:-translate-y-[1px]", t)}>
       <div className="text-[11px] text-zinc-400">{label}</div>
       <div className="mt-1 text-sm font-semibold">{value}</div>
     </div>
@@ -2012,7 +2304,7 @@ function Kpi({ title, value, sub, tone }) {
       : "bg-white/5 text-zinc-200 border-white/10";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]">
       <div className="flex items-center justify-between">
         <div className="text-xs text-zinc-400">{title}</div>
         <div className={cn("rounded-full border px-2 py-1 text-[10px]", badge)}>{sub}</div>
@@ -2031,7 +2323,7 @@ function DayCard({ title, value, meta, badge, tone }) {
       : "text-zinc-200 bg-white/5 border-white/10";
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4 transition duration-300 hover:-translate-y-[1px] hover:border-white/15">
       <div className="text-[11px] text-zinc-400">{title}</div>
       <div className="mt-1 text-lg font-semibold text-zinc-100">{value}</div>
       <div className="mt-1 flex items-center justify-between">
@@ -2048,7 +2340,7 @@ function Input({ label, ...props }) {
       <div className="mb-1 text-xs text-zinc-400">{label}</div>
       <input
         {...props}
-        className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:ring-2 focus:ring-purple-500/40"
+        className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none transition placeholder:text-zinc-600 focus:ring-2 focus:ring-purple-500/40"
       />
     </label>
   );
@@ -2065,7 +2357,7 @@ function Select({ label, options, value, onChange, ...props }) {
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+    <div className="rounded-xl border border-white/10 bg-white/5 p-3 transition hover:border-white/15">
       <div className="text-[11px] text-zinc-400">{label}</div>
       <div className="mt-1 text-sm text-zinc-200">{value}</div>
     </div>
@@ -2079,7 +2371,7 @@ function NavIcon({ active, onClick, label, children }) {
       onClick={onClick}
       title={label}
       className={cn(
-        "group relative flex h-11 w-11 items-center justify-center rounded-2xl border text-sm transition",
+        "group relative flex h-11 w-11 items-center justify-center rounded-2xl border text-sm transition duration-300 active:scale-[0.96]",
         active
           ? "border-white/20 bg-white/10 shadow-[0_0_0_1px_rgba(168,85,247,0.25),0_10px_30px_-10px_rgba(168,85,247,0.45)]"
           : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -2087,11 +2379,16 @@ function NavIcon({ active, onClick, label, children }) {
     >
       <span
         className={cn(
-          "absolute -left-[18px] h-6 w-[3px] rounded-full transition-opacity",
-          active ? "opacity-100 bg-purple-400" : "opacity-0"
+          "absolute -left-[18px] h-6 w-[3px] rounded-full transition-all duration-300",
+          active ? "bg-purple-400 opacity-100" : "opacity-0"
         )}
       />
-      <span className={cn("transition", active ? "text-zinc-100" : "text-zinc-300 group-hover:text-zinc-100")}>
+      <span
+        className={cn(
+          "transition",
+          active ? "text-zinc-100" : "text-zinc-300 group-hover:text-zinc-100"
+        )}
+      >
         {children}
       </span>
     </button>
@@ -2101,7 +2398,7 @@ function NavIcon({ active, onClick, label, children }) {
 function MiniStat({ title, value, subtitle, series = [], good }) {
   const data = (series || []).slice(-30).map((v, i) => ({ i, v }));
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]">
       <div className="text-xs text-zinc-400">{title}</div>
       <div className={cn("mt-1 text-2xl font-semibold", good ? "text-emerald-200" : "text-red-200")}>
         {value}
@@ -2129,7 +2426,7 @@ function RingStat({ title, value, label, kind }) {
   const dash = c * pct;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]">
       <div className="text-xs text-zinc-400">{title}</div>
 
       <div className="mt-3 flex items-center justify-between">
@@ -2164,7 +2461,7 @@ function BarStat({ title, left, right }) {
   const rp = (R / max) * 100;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur">
+    <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]">
       <div className="text-xs text-zinc-400">{title}</div>
 
       <div className="mt-2 flex items-center justify-between text-sm">
@@ -2174,10 +2471,10 @@ function BarStat({ title, left, right }) {
 
       <div className="mt-3 space-y-2">
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full bg-emerald-400/70" style={{ width: `${lp}%` }} />
+          <div className="h-full bg-emerald-400/70 transition-all duration-500" style={{ width: `${lp}%` }} />
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full bg-red-400/70" style={{ width: `${rp}%` }} />
+          <div className="h-full bg-red-400/70 transition-all duration-500" style={{ width: `${rp}%` }} />
         </div>
       </div>
     </div>
