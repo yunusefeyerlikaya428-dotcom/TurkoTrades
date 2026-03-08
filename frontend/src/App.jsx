@@ -65,7 +65,6 @@ function clamp(n, a, b) {
 }
 
 function formatTRDate(ymdStr) {
-  // "2026-03-04" -> "04.03.2026"
   if (!ymdStr || typeof ymdStr !== "string") return "";
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymdStr);
   if (!m) return ymdStr;
@@ -86,6 +85,10 @@ const SESSION_OPTIONS = [
    ========================= */
 
 function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
+  const cellSize = big ? 85 : 72;
+  const gapSize = 8;
+  const radiusClass = "rounded-[8px]";
+
   return (
     <Card className={cn(big ? "p-6 h-full" : "h-full")}>
       <div className="flex items-center justify-between">
@@ -138,67 +141,88 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
       </div>
 
       {/* Header days */}
-      <div className={cn("mt-4 grid grid-cols-7", big ? "gap-[6px]" : "gap-2")}>
-        {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
-          <div key={d} className="text-center text-[11px] text-zinc-500">
-            {d}
-          </div>
-        ))}
+      <div className="mt-4 overflow-x-auto">
+        <div
+          className="grid justify-center"
+          style={{
+            gridTemplateColumns: `repeat(7, ${cellSize}px)`,
+            gap: `${gapSize}px`,
+          }}
+        >
+          {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map((d) => (
+            <div key={d} className="text-center text-[11px] text-zinc-500">
+              {d}
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Cells (KARE + HAFİF KAVİS + DAHA KÜÇÜK) */}
-      <div className={cn("mt-2 grid grid-cols-7", big ? "gap-[6px] text-xs" : "gap-2 text-xs")}>
-        {calendar.map((c, idx) => {
-          if (!c)
+      {/* Cells */}
+      <div className="mt-2 overflow-x-auto">
+        <div
+          className="grid justify-center text-xs"
+          style={{
+            gridTemplateColumns: `repeat(7, ${cellSize}px)`,
+            gap: `${gapSize}px`,
+          }}
+        >
+          {calendar.map((c, idx) => {
+            if (!c)
+              return (
+                <div
+                  key={idx}
+                  className={cn("border border-transparent bg-transparent", radiusClass)}
+                  style={{ width: cellSize, height: cellSize }}
+                />
+              );
+
+            const pnl = c.pnl;
+            const intensity = clamp(Math.abs(pnl) / 120, 0, 1);
+            const bg =
+              pnl > 0
+                ? `rgba(34,197,94,${0.10 + intensity * 0.35})`
+                : pnl < 0
+                ? `rgba(239,68,68,${0.10 + intensity * 0.35})`
+                : `rgba(255,255,255,0.05)`;
+
             return (
               <div
-                key={idx}
-                className={cn("aspect-square w-full bg-transparent", big ? "rounded-xl" : "rounded-2xl")}
-              />
-            );
+                key={c.key}
+                title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
+                className={cn(
+                  "border border-white/10 hover:border-white/20 transition p-2",
+                  radiusClass
+                )}
+                style={{
+                  width: cellSize,
+                  height: cellSize,
+                  background: bg,
+                }}
+              >
+                <div className="flex h-full flex-col justify-between">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-sm font-semibold text-zinc-100">{c.d}</span>
 
-          const pnl = c.pnl;
-          const intensity = clamp(Math.abs(pnl) / 120, 0, 1);
-          const bg =
-            pnl > 0
-              ? `rgba(34,197,94,${0.10 + intensity * 0.35})`
-              : pnl < 0
-              ? `rgba(239,68,68,${0.10 + intensity * 0.35})`
-              : `rgba(255,255,255,0.05)`;
+                    <div className="flex flex-col items-end leading-tight">
+                      <span
+                        className={cn(
+                          "text-[11px] font-semibold",
+                          pnl > 0 ? "text-emerald-200" : pnl < 0 ? "text-red-200" : "text-zinc-300"
+                        )}
+                      >
+                        {compactMoneyUSD(pnl)}
+                      </span>
+                    </div>
+                  </div>
 
-          return (
-            <div
-              key={c.key}
-              title={`${c.key} • ${money(pnl)} • ${c.count || 0} trade`}
-              className={cn(
-                "aspect-square w-full border border-white/10 hover:border-white/20 transition",
-                big ? "rounded-xl p-2" : "rounded-2xl p-2"
-              )}
-              style={{ background: bg }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className={cn("font-semibold text-zinc-100", big ? "text-sm" : "text-sm")}>
-                  {c.d}
-                </span>
-
-                <div className="flex flex-col items-end leading-tight">
-                  <span
-                    className={cn(
-                      big ? "text-[11px] font-semibold" : "text-[11px] font-semibold",
-                      pnl > 0 ? "text-emerald-200" : pnl < 0 ? "text-red-200" : "text-zinc-300"
-                    )}
-                  >
-                    {compactMoneyUSD(pnl)}
-                  </span>
-
-                  <span className={cn("mt-1 text-zinc-400", big ? "text-[10px]" : "text-[10px]")}>
+                  <span className="text-[10px] text-zinc-400">
                     {c.count ? `${c.count} trade` : ""}
                   </span>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </Card>
   );
@@ -212,7 +236,6 @@ function NewTradeForm({
   sessionOptions,
   pointValue,
 }) {
-  // ✅ popup daypicker state (tarayıcı date picker yok)
   const [dateOpen, setDateOpen] = useState(false);
   const dateRef = useRef(null);
 
@@ -273,7 +296,6 @@ function NewTradeForm({
             min="0"
           />
 
-          {/* ✅ Modern Date Picker (popup) */}
           <div className="relative block" ref={dateRef}>
             <div className="mb-1 text-xs text-zinc-400">Date</div>
 
@@ -355,7 +377,6 @@ function NewTradeForm({
           />
         </div>
 
-        {/* Manual PnL */}
         <div className="grid grid-cols-2 gap-2">
           <Input
             label="Manual PnL ($)"
@@ -398,15 +419,10 @@ function NewTradeForm({
           Add Trade
         </button>
       </form>
-
-      {/* ✅ 1) Manuel PnL açıklaması: BOŞ (kaldırıldı) */}
     </Card>
   );
 }
 
-/* =========================
-   ✅ CUSTOM DROPDOWN (TÜM LİSTELER)
-   ========================= */
 function Dropdown({ value, onChange, options, className, buttonClassName, menuClassName }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -497,7 +513,6 @@ export default function App() {
   const [symbolFilter, setSymbolFilter] = useState("ALL");
   const [monthCursor, setMonthCursor] = useState(new Date());
 
-  // ✅ F5 sonrası reset olmasın (localStorage)
   const [accountSize, setAccountSize] = useState(() => {
     const v = localStorage.getItem("tt_accountSize");
     return v ? Number(v) : 10000;
@@ -532,7 +547,6 @@ export default function App() {
     screenshot: "",
   });
 
-  // ✅ Supabase'ten çek
   const fetchTrades = async () => {
     const { data, error } = await supabase.from("trades").select("*").order("created_at", {
       ascending: false,
@@ -569,10 +583,9 @@ export default function App() {
         return inRange && symOk;
       })
       .slice()
-      .reverse(); // oldest->newest equity
+      .reverse();
   }, [trades, range, symbolFilter]);
 
-  // RR helpers (auto)
   const tradeRR = (t) => {
     const acc = Number(accountSize);
     const riskPct = Number(t.risk_pct ?? 0);
@@ -612,7 +625,6 @@ export default function App() {
 
     const pf = grossLossAbs > 0 ? grossWin / grossLossAbs : grossWin > 0 ? 999 : 0;
 
-    // Avg RR
     const rrs = filtered.map(tradeRR).filter((x) => Number.isFinite(x) && x !== 0);
     const avgRR = rrs.length ? rrs.reduce((a, b) => a + b, 0) / rrs.length : 0;
 
@@ -651,13 +663,12 @@ export default function App() {
     });
   }, [filtered, accountSize]);
 
-  // ✅ Drawdown series
   const drawdownSeries = useMemo(() => {
     let peak = -Infinity;
     return equitySeries.map((p) => {
       const eq = Number(p.equity || 0);
       peak = Math.max(peak, eq);
-      const dd = eq - peak; // <= 0
+      const dd = eq - peak;
       return { date: p.date, drawdown: Number(dd.toFixed(2)) };
     });
   }, [equitySeries]);
@@ -669,7 +680,6 @@ export default function App() {
     return { maxDD, avgDD };
   }, [drawdownSeries]);
 
-  // ✅ Streaks
   const streaks = useMemo(() => {
     let curWin = 0,
       curLoss = 0,
@@ -694,7 +704,6 @@ export default function App() {
     return { maxWin, maxLoss };
   }, [filtered]);
 
-  // ✅ Day of week analysis
   const dow = useMemo(() => {
     const names = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
     const agg = new Map();
@@ -710,7 +719,7 @@ export default function App() {
       if (pnl > 0) cur.wins += 1;
       agg.set(k, cur);
     }
-    const order = [1, 2, 3, 4, 5, 6, 0]; // Pzt->Paz
+    const order = [1, 2, 3, 4, 5, 6, 0];
     return order.map((k) => {
       const x = agg.get(k) || { day: names[k], pnl: 0, count: 0, wins: 0 };
       const wr = x.count ? (x.wins / x.count) * 100 : 0;
@@ -718,7 +727,6 @@ export default function App() {
     });
   }, [filtered]);
 
-  // ✅ Best/Worst day cards
   const dayCards = useMemo(() => {
     if (!dow.length) return null;
     const onlyActive = dow.filter((x) => x.count > 0);
@@ -729,7 +737,6 @@ export default function App() {
     return { bestPnL, worstPnL, mostActive, bestWR };
   }, [dow]);
 
-  // ✅ Symbol performance
   const symbolPerf = useMemo(() => {
     const m = new Map();
     for (const t of filtered) {
@@ -753,7 +760,6 @@ export default function App() {
 
   const bestSymbol = useMemo(() => symbolPerf[0] || null, [symbolPerf]);
 
-  // ✅ Session analysis
   const sessionPerf = useMemo(() => {
     const m = new Map();
     for (const t of filtered) {
@@ -774,7 +780,6 @@ export default function App() {
     return arr;
   }, [filtered]);
 
-  // Calendar aggregation (all trades)
   const pnlByDay = useMemo(() => {
     const m = new Map();
     for (const t of trades) {
@@ -796,7 +801,7 @@ export default function App() {
   const calendar = useMemo(() => {
     const start = startOfMonth(monthCursor);
     const end = endOfMonth(monthCursor);
-    const startWeekday = (start.getDay() + 6) % 7; // Mon=0
+    const startWeekday = (start.getDay() + 6) % 7;
     const daysInMonth = end.getDate();
 
     const cells = [];
@@ -814,7 +819,6 @@ export default function App() {
     return cells;
   }, [monthCursor, pnlByDay, tradeCountByDay]);
 
-  // ✅ Calendar charts (1-2-3)
   const calendarCharts = useMemo(() => {
     const y = monthCursor.getFullYear();
     const m = monthCursor.getMonth();
@@ -872,7 +876,6 @@ export default function App() {
       return;
     }
 
-    // PnL: manual varsa onu al, yoksa (Exit-Entry)*pointValue
     let pnl = 0;
     if (manual !== null && Number.isFinite(manual)) {
       pnl = Number(manual.toFixed(2));
@@ -952,7 +955,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {/* ambient bg */}
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -top-48 -left-48 h-[520px] w-[520px] rounded-full bg-purple-700/40 blur-[140px]" />
         <div className="absolute top-0 right-0 h-[520px] w-[520px] rounded-full bg-fuchsia-600/30 blur-[150px]" />
@@ -960,11 +962,9 @@ export default function App() {
       </div>
 
       <div className="relative flex min-h-screen">
-        {/* SIDEBAR */}
         <aside className="relative sticky top-0 flex h-screen w-[78px] flex-col items-center gap-3 border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl">
           <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500/0 via-purple-500/30 to-purple-500/0" />
 
-          {/* logo icon */}
           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
             <img src="/logo-icon.png" alt="TurkoTrades" className="h-9 w-9 object-contain" />
           </div>
@@ -1000,13 +1000,10 @@ export default function App() {
           </div>
         </aside>
 
-        {/* MAIN */}
         <main className="flex-1">
           <div className="mx-auto max-w-7xl px-6 py-6">
-            {/* Top bar */}
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 backdrop-blur">
               <div className="flex items-center gap-3">
-                {/* only big logo, no text */}
                 <img src="/logo.png" alt="TurkoTrades" className="h-10 md:h-12 w-auto object-contain" />
 
                 <div className="text-xs text-zinc-500">
@@ -1037,7 +1034,6 @@ export default function App() {
                   <span className="text-xs text-zinc-500">Start</span>
                 </div>
 
-                {/* ✅ MODERN DROPDOWN (Symbol) */}
                 <Dropdown
                   value={symbolFilter}
                   onChange={(e) => setSymbolFilter(e.target.value)}
@@ -1045,7 +1041,6 @@ export default function App() {
                   className="w-[160px]"
                 />
 
-                {/* ✅ MODERN DROPDOWN (Range) */}
                 <Dropdown
                   value={range}
                   onChange={(e) => setRange(Number(e.target.value))}
@@ -1063,7 +1058,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* DASHBOARD */}
             {activeNav === "dashboard" && (
               <>
                 <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -1093,20 +1087,28 @@ export default function App() {
                   />
                 </div>
 
-                {/* ✅ Account Growth (alt boşluk doldu: chart + stats) + Monthly Heatmap */}
-                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                {/* ✅ Heatmap | Charts */}
+                <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.05fr_1.35fr]">
+                  <Heatmap
+                    big
+                    monthTitle={monthTitle}
+                    calendar={calendar}
+                    monthCursor={monthCursor}
+                    setMonthCursor={setMonthCursor}
+                  />
+
                   <Card className="h-full">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-sm text-zinc-200">Account Growth</div>
-                        <div className="text-xs text-zinc-500">{/* boş */}</div>
+                        <div className="text-xs text-zinc-500">Equity curve</div>
                       </div>
                       <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
                         {fmt(returnPct)}%
                       </span>
                     </div>
 
-                    <div className="mt-3 h-[260px] w-full">
+                    <div className="mt-3 h-[340px] w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={equitySeries}>
                           <defs>
@@ -1142,34 +1144,28 @@ export default function App() {
                       </ResponsiveContainer>
                     </div>
 
-                    {/* ✅ Alt boşluğu dolduran stats */}
-                    <div className="mt-3 grid grid-cols-2 gap-2 md:grid-cols-4">
-                      <MiniKpi label="Net Growth" value={money(stats.total)} tone={stats.total >= 0 ? "good" : "bad"} />
+                    <div className="mt-3 grid grid-cols-2 gap-2 xl:grid-cols-4">
+                      <MiniKpi
+                        label="Net Growth"
+                        value={money(stats.total)}
+                        tone={stats.total >= 0 ? "good" : "bad"}
+                      />
                       <MiniKpi
                         label="Return"
                         value={`${fmt(returnPct)}%`}
                         tone={returnPct >= 0 ? "good" : "bad"}
                       />
                       <MiniKpi
-                        label="Max DD"
+                        label="Max Drawdown"
                         value={money(drawdownStats.maxDD)}
                         tone={drawdownStats.maxDD < 0 ? "bad" : "neutral"}
                       />
                       <MiniKpi label="Trades" value={String(stats.count)} tone="neutral" />
                     </div>
                   </Card>
-
-                  <Heatmap
-                    big
-                    monthTitle={monthTitle}
-                    calendar={calendar}
-                    monthCursor={monthCursor}
-                    setMonthCursor={setMonthCursor}
-                  />
                 </div>
 
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
-                  {/* Best symbol */}
                   <Card>
                     <div className="text-sm text-zinc-200">Top Symbol (PnL)</div>
                     <div className="mt-3">
@@ -1210,7 +1206,6 @@ export default function App() {
                     </div>
                   </Card>
 
-                  {/* Day cards */}
                   <Card className="lg:col-span-2">
                     <div className="text-sm text-zinc-200">Day Analysis</div>
                     <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -1246,7 +1241,6 @@ export default function App() {
                   </Card>
                 </div>
 
-                {/* ✅ NewTrade + RecentTrades */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-3">
                   <NewTradeForm
                     subtitle="Dashboard quick add"
@@ -1323,7 +1317,6 @@ export default function App() {
               </>
             )}
 
-            {/* TRADES */}
             {activeNav === "trades" && (
               <>
                 <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-4">
@@ -1596,10 +1589,8 @@ export default function App() {
               </>
             )}
 
-            {/* CALENDAR */}
             {activeNav === "calendar" && (
               <>
-                {/* ✅ Heatmap + Charts YAN YANA (LG) */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
                   <Heatmap
                     big
@@ -1610,7 +1601,6 @@ export default function App() {
                   />
 
                   <div className="space-y-4">
-                    {/* 1) Daily Net PnL (renkli bar + zero line) */}
                     <Card>
                       <div className="text-sm text-zinc-200">Daily Net PnL</div>
                       <div className="mt-3 h-[220px] w-full">
@@ -1651,7 +1641,6 @@ export default function App() {
                       </div>
                     </Card>
 
-                    {/* 2) Daily Trade Count */}
                     <Card>
                       <div className="text-sm text-zinc-200">Daily Trade Count</div>
                       <div className="mt-3 h-[220px] w-full">
@@ -1682,7 +1671,6 @@ export default function App() {
                       </div>
                     </Card>
 
-                    {/* 3) Cumulative PnL (MTD) (area fill) */}
                     <Card>
                       <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
                       <div className="mt-3 h-[220px] w-full">
@@ -1729,7 +1717,6 @@ export default function App() {
               </>
             )}
 
-            {/* SETTINGS */}
             {activeNav === "settings" && (
               <>
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -1770,7 +1757,7 @@ export default function App() {
 
                   <Card>
                     <div className="text-sm text-zinc-200">Danger Zone</div>
-                    <div className="mt-4 text-xs text-zinc-400">{/* boş */}</div>
+                    <div className="mt-4 text-xs text-zinc-400"></div>
                   </Card>
                 </div>
 
@@ -1781,7 +1768,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Drawer */}
       <div className={cn("fixed inset-0 z-50", drawerOpen ? "pointer-events-auto" : "pointer-events-none")}>
         <div
           className={cn(
@@ -1801,7 +1787,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="text-sm font-medium text-zinc-200">Trade Detail</div>
-                <div className="text-xs text-zinc-500">{/* boş */}</div>
+                <div className="text-xs text-zinc-500"></div>
               </div>
 
               <button
@@ -1901,7 +1887,7 @@ export default function App() {
               )}
             </div>
 
-            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500">{/* boş */}</div>
+            <div className="border-t border-white/10 px-5 py-4 text-xs text-zinc-500"></div>
           </div>
         </div>
       </div>
@@ -1985,7 +1971,6 @@ function Input({ label, ...props }) {
   );
 }
 
-/* ✅ Select: artık custom dropdown */
 function Select({ label, options, value, onChange, ...props }) {
   return (
     <label className="block">
@@ -2030,7 +2015,6 @@ function NavIcon({ active, onClick, label, children }) {
   );
 }
 
-/* Trades üst kartları */
 function MiniStat({ title, value, subtitle, series = [], good }) {
   const data = (series || []).slice(-30).map((v, i) => ({ i, v }));
   return (
