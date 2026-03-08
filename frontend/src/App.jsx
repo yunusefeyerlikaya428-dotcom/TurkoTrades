@@ -420,7 +420,7 @@ function NewTradeForm({
                   onSelect={(date) => {
                     setForm({
                       ...form,
-                      date: date ? date.toISOString().slice(0, 10) : "",
+                      date: date ? ymd(date) : "",
                     });
                     setDateOpen(false);
                   }}
