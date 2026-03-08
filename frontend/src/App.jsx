@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "./supabase";
 import {
   LineChart,
@@ -77,6 +78,79 @@ const SESSION_OPTIONS = [
   { v: "London", t: "London" },
   { v: "Asia", t: "Asia" },
 ];
+
+/* =========================
+   ✅ PORTAL FLOATING LAYER
+   ========================= */
+
+function FloatingLayer({
+  open,
+  anchorRef,
+  layerRef,
+  children,
+  matchWidth = false,
+  minWidth = 0,
+  offset = 8,
+}) {
+  const [style, setStyle] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const update = () => {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+
+      const r = anchor.getBoundingClientRect();
+      const viewportW = window.innerWidth;
+      const viewportH = window.innerHeight;
+
+      let width = matchWidth ? r.width : Math.max(minWidth, r.width);
+      width = Math.min(width, viewportW - 16);
+
+      let left = r.left;
+      if (left + width > viewportW - 8) left = viewportW - width - 8;
+      if (left < 8) left = 8;
+
+      let top = r.bottom + offset;
+      const estimatedHeight = 380;
+      if (top + estimatedHeight > viewportH - 8 && r.top > estimatedHeight) {
+        top = Math.max(8, r.top - estimatedHeight - offset);
+      }
+
+      setStyle({
+        position: "fixed",
+        top,
+        left,
+        width,
+        zIndex: 99999,
+      });
+    };
+
+    update();
+
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [open, anchorRef, matchWidth, minWidth, offset]);
+
+  if (!open || !style) return null;
+
+  return createPortal(
+    <div ref={layerRef} style={style}>
+      {children}
+    </div>,
+    document.body
+  );
+}
+
+/* =========================
+   ✅ App DIŞI BİLEŞENLER
+   ========================= */
 
 function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
   const cellSize = big ? 85 : 72;
@@ -229,19 +303,24 @@ function NewTradeForm({
   pointValue,
 }) {
   const [dateOpen, setDateOpen] = useState(false);
-  const dateRef = useRef(null);
+  const anchorRef = useRef(null);
+  const layerRef = useRef(null);
 
   useEffect(() => {
     if (!dateOpen) return;
+
     const onDown = (e) => {
-      if (dateRef.current && !dateRef.current.contains(e.target)) setDateOpen(false);
+      const insideAnchor = anchorRef.current?.contains(e.target);
+      const insideLayer = layerRef.current?.contains(e.target);
+      if (!insideAnchor && !insideLayer) setDateOpen(false);
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [dateOpen]);
 
   return (
-    <Card className="lg:col-span-1 relative z-20 overflow-visible">
+    <Card className="lg:col-span-1 relative">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-zinc-200">New Trade</div>
@@ -288,10 +367,11 @@ function NewTradeForm({
             min="0"
           />
 
-          <div className="relative z-[120] block overflow-visible" ref={dateRef}>
+          <div className="block">
             <div className="mb-1 text-xs text-zinc-400">Date</div>
 
             <button
+              ref={anchorRef}
               type="button"
               className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-left text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-purple-500/40 hover:border-white/20"
               onClick={() => setDateOpen((v) => !v)}
@@ -302,8 +382,13 @@ function NewTradeForm({
               <span className="float-right opacity-70">📅</span>
             </button>
 
-            {dateOpen && (
-              <div className="absolute left-0 top-full z-[9999] mt-2 rounded-2xl border border-white/10 bg-zinc-900/95 p-2 shadow-2xl backdrop-blur">
+            <FloatingLayer
+              open={dateOpen}
+              anchorRef={anchorRef}
+              layerRef={layerRef}
+              minWidth={330}
+            >
+              <div className="rounded-2xl border border-white/10 bg-zinc-900/95 p-2 shadow-2xl backdrop-blur">
                 <div className="flex items-center justify-between px-2 pb-2">
                   <button
                     type="button"
@@ -341,7 +426,7 @@ function NewTradeForm({
                   }}
                 />
               </div>
-            )}
+            </FloatingLayer>
           </div>
         </div>
 
@@ -417,15 +502,20 @@ function NewTradeForm({
 
 function Dropdown({ value, onChange, options, className, buttonClassName, menuClassName }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const anchorRef = useRef(null);
+  const layerRef = useRef(null);
 
   const selected = options.find((o) => String(o.v) === String(value)) || options[0];
 
   useEffect(() => {
     if (!open) return;
+
     const onDown = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      const insideAnchor = anchorRef.current?.contains(e.target);
+      const insideLayer = layerRef.current?.contains(e.target);
+      if (!insideAnchor && !insideLayer) setOpen(false);
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [open]);
@@ -435,8 +525,9 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
   };
 
   return (
-    <div ref={ref} className={cn("relative z-[120] overflow-visible", className)}>
+    <div className={cn("relative", className)}>
       <button
+        ref={anchorRef}
         type="button"
         onClick={() => setOpen((x) => !x)}
         className={cn(
@@ -463,10 +554,15 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
         </svg>
       </button>
 
-      {open && (
+      <FloatingLayer
+        open={open}
+        anchorRef={anchorRef}
+        layerRef={layerRef}
+        matchWidth
+      >
         <div
           className={cn(
-            "absolute left-0 top-full z-[9999] mt-2 w-full rounded-2xl border border-white/10 bg-zinc-900/95 shadow-2xl backdrop-blur",
+            "rounded-2xl border border-white/10 bg-zinc-900/95 shadow-2xl backdrop-blur",
             menuClassName
           )}
         >
@@ -494,7 +590,7 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
             })}
           </div>
         </div>
-      )}
+      </FloatingLayer>
     </div>
   );
 }
@@ -1882,7 +1978,7 @@ function Card({ className, children }) {
   return (
     <div
       className={cn(
-        "relative overflow-visible rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur",
+        "relative rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur",
         className
       )}
     >
