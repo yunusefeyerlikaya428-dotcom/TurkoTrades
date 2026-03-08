@@ -36,13 +36,11 @@ function compactMoney(n) {
   return sign + String(Math.round(abs));
 }
 
-/** Para formatı ($) */
 function money(n) {
   const x = Number(n || 0);
   if (!Number.isFinite(x)) return "$0.00";
   return `$${fmt(x)}`;
 }
-/** Compact değerin yanına $ */
 function compactMoneyUSD(n) {
   const s = compactMoney(n);
   return s ? `${s}$` : "";
@@ -79,10 +77,6 @@ const SESSION_OPTIONS = [
   { v: "London", t: "London" },
   { v: "Asia", t: "Asia" },
 ];
-
-/* =========================
-   ✅ App DIŞI BİLEŞENLER
-   ========================= */
 
 function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCursor }) {
   const cellSize = big ? 85 : 72;
@@ -140,7 +134,6 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         </div>
       </div>
 
-      {/* Header days */}
       <div className="mt-4 overflow-x-auto">
         <div
           className="grid justify-center"
@@ -157,7 +150,6 @@ function Heatmap({ big = false, monthTitle, calendar, monthCursor, setMonthCurso
         </div>
       </div>
 
-      {/* Cells */}
       <div className="mt-2 overflow-x-auto">
         <div
           className="grid justify-center text-xs"
@@ -249,7 +241,7 @@ function NewTradeForm({
   }, [dateOpen]);
 
   return (
-    <Card className="lg:col-span-1">
+    <Card className="lg:col-span-1 relative z-20 overflow-visible">
       <div className="flex items-center justify-between">
         <div>
           <div className="text-sm text-zinc-200">New Trade</div>
@@ -296,7 +288,7 @@ function NewTradeForm({
             min="0"
           />
 
-          <div className="relative block" ref={dateRef}>
+          <div className="relative z-[120] block overflow-visible" ref={dateRef}>
             <div className="mb-1 text-xs text-zinc-400">Date</div>
 
             <button
@@ -311,7 +303,7 @@ function NewTradeForm({
             </button>
 
             {dateOpen && (
-              <div className="absolute z-50 mt-2 rounded-2xl border border-white/10 bg-zinc-900/95 p-2 shadow-xl backdrop-blur">
+              <div className="absolute left-0 top-full z-[9999] mt-2 rounded-2xl border border-white/10 bg-zinc-900/95 p-2 shadow-2xl backdrop-blur">
                 <div className="flex items-center justify-between px-2 pb-2">
                   <button
                     type="button"
@@ -443,7 +435,7 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
   };
 
   return (
-    <div ref={ref} className={cn("relative", className)}>
+    <div ref={ref} className={cn("relative z-[120] overflow-visible", className)}>
       <button
         type="button"
         onClick={() => setOpen((x) => !x)}
@@ -474,7 +466,7 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
       {open && (
         <div
           className={cn(
-            "absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/95 shadow-xl backdrop-blur",
+            "absolute left-0 top-full z-[9999] mt-2 w-full rounded-2xl border border-white/10 bg-zinc-900/95 shadow-2xl backdrop-blur",
             menuClassName
           )}
         >
@@ -531,7 +523,6 @@ export default function App() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
-
   const [activeNav, setActiveNav] = useState("dashboard");
 
   const [form, setForm] = useState({
@@ -576,10 +567,8 @@ export default function App() {
       .filter((t) => {
         const td = new Date(t.date);
         const inRange = !Number.isNaN(td) ? td >= from : true;
-
         const symOk =
           symbolFilter === "ALL" ? true : (t.symbol || "").toUpperCase() === symbolFilter;
-
         return inRange && symOk;
       })
       .slice()
@@ -604,15 +593,11 @@ export default function App() {
     const winRate = filtered.length ? (wins / filtered.length) * 100 : 0;
 
     const avgWin = wins
-      ? filtered
-          .filter((t) => Number(t.pnl) > 0)
-          .reduce((a, t) => a + Number(t.pnl), 0) / wins
+      ? filtered.filter((t) => Number(t.pnl) > 0).reduce((a, t) => a + Number(t.pnl), 0) / wins
       : 0;
 
     const avgLoss = losses
-      ? filtered
-          .filter((t) => Number(t.pnl) < 0)
-          .reduce((a, t) => a + Number(t.pnl), 0) / losses
+      ? filtered.filter((t) => Number(t.pnl) < 0).reduce((a, t) => a + Number(t.pnl), 0) / losses
       : 0;
 
     const grossWin = filtered
@@ -624,7 +609,6 @@ export default function App() {
     );
 
     const pf = grossLossAbs > 0 ? grossWin / grossLossAbs : grossWin > 0 ? 999 : 0;
-
     const rrs = filtered.map(tradeRR).filter((x) => Number.isFinite(x) && x !== 0);
     const avgRR = rrs.length ? rrs.reduce((a, b) => a + b, 0) / rrs.length : 0;
 
@@ -1087,7 +1071,6 @@ export default function App() {
                   />
                 </div>
 
-                {/* ✅ Heatmap | Charts */}
                 <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.05fr_1.35fr]">
                   <Heatmap
                     big
@@ -1895,10 +1878,14 @@ export default function App() {
   );
 }
 
-/* UI blocks */
 function Card({ className, children }) {
   return (
-    <div className={cn("rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur", className)}>
+    <div
+      className={cn(
+        "relative overflow-visible rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur",
+        className
+      )}
+    >
       {children}
     </div>
   );
