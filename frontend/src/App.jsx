@@ -67,6 +67,17 @@ function formatTRDate(ymdStr) {
   const [, y, mo, d] = m;
   return `${d}.${mo}.${y}`;
 }
+function toInputDate(v) {
+  if (!v) return "";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return typeof v === "string" ? v.slice(0, 10) : "";
+  return ymd(d);
+}
+function safeNum(v) {
+  if (v === "" || v === null || v === undefined) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
 
 const SESSION_OPTIONS = [
   { v: "New York AM", t: "New York AM" },
@@ -591,11 +602,20 @@ function NewTradeForm({
             type="number"
             step="0.01"
           />
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-            <div className="text-[11px] text-zinc-400">Auto calc</div>
-            <div className="mt-1 text-sm text-zinc-200">
-              Point value: <span className="text-zinc-300">{pointValue}</span>
-            </div>
+          <Input
+            label="Manual RR"
+            value={form.rrManual}
+            onChange={(e) => setForm({ ...form, rrManual: e.target.value })}
+            placeholder="2.5 / -1 / 0.8"
+            type="number"
+            step="0.01"
+          />
+        </div>
+
+        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+          <div className="text-[11px] text-zinc-400">Auto calc</div>
+          <div className="mt-1 text-sm text-zinc-200">
+            Point value: <span className="text-zinc-300">{pointValue}</span>
           </div>
         </div>
 
@@ -717,7 +737,6 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
 
 export default function App() {
   const [trades, setTrades] = useState([]);
-  const [range, setRange] = useState(30);
   const [symbolFilter, setSymbolFilter] = useState("ALL");
   const [monthCursor, setMonthCursor] = useState(new Date());
 
@@ -732,6 +751,8 @@ export default function App() {
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState(null);
+  const [editTrade, setEditTrade] = useState(null);
+  const [savingTrade, setSavingTrade] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
 
   const [confirmDelete, setConfirmDelete] = useState({
@@ -750,6 +771,7 @@ export default function App() {
     entry: "",
     exit: "",
     pnlManual: "",
+    rrManual: "",
     date: "",
     notes: "",
     screenshot: "",
@@ -798,25 +820,23 @@ export default function App() {
   }, [trades]);
 
   const filtered = useMemo(() => {
-    const now = new Date();
-    const from = new Date(now.getTime() - range * 24 * 60 * 60 * 1000);
-
     return trades
       .filter((t) => {
-        const td = new Date(t.date);
-        const inRange = !Number.isNaN(td) ? td >= from : true;
         const symOk =
           symbolFilter === "ALL" ? true : (t.symbol || "").toUpperCase() === symbolFilter;
-        return inRange && symOk;
+        return symOk;
       })
       .slice()
       .reverse();
-  }, [trades, range, symbolFilter]);
+  }, [trades, symbolFilter]);
 
   const tradeRR = (t) => {
+    const manualRR = Number(t?.rr);
+    if (Number.isFinite(manualRR)) return manualRR;
+
     const acc = Number(accountSize);
-    const riskPct = Number(t.risk_pct ?? 0);
-    const pnl = Number(t.pnl ?? 0);
+    const riskPct = Number(t?.risk_pct ?? 0);
+    const pnl = Number(t?.pnl ?? 0);
     if (!Number.isFinite(acc) || acc <= 0) return 0;
     if (!Number.isFinite(riskPct) || riskPct <= 0) return 0;
     const riskDollar = (acc * riskPct) / 100;
@@ -847,7 +867,7 @@ export default function App() {
     );
 
     const pf = grossLossAbs > 0 ? grossWin / grossLossAbs : grossWin > 0 ? 999 : 0;
-    const rrs = filtered.map(tradeRR).filter((x) => Number.isFinite(x) && x !== 0);
+    const rrs = filtered.map(tradeRR).filter((x) => Number.isFinite(x));
     const avgRR = rrs.length ? rrs.reduce((a, b) => a + b, 0) / rrs.length : 0;
 
     return {
@@ -1041,48 +1061,63 @@ export default function App() {
     return cells;
   }, [monthCursor, pnlByDay, tradeCountByDay]);
 
-  const calendarCharts = useMemo(() => {
-    const y = monthCursor.getFullYear();
-    const m = monthCursor.getMonth();
-    const daysInMonth = endOfMonth(monthCursor).getDate();
-
-    const daily = Array.from({ length: daysInMonth }, (_, i) => ({
-      day: i + 1,
-      pnl: 0,
-      count: 0,
-    }));
+  const allTimeCharts = useMemo(() => {
+    const byDay = new Map();
 
     for (const t of trades || []) {
       if (!t.date) continue;
-      const d = new Date(t.date);
-      if (Number.isNaN(d.getTime())) continue;
-      if (d.getFullYear() !== y || d.getMonth() !== m) continue;
-
-      const idx = d.getDate() - 1;
-      daily[idx].pnl += Number(t.pnl || 0);
-      daily[idx].count += 1;
+      const key = toInputDate(t.date);
+      if (!key) continue;
+      const cur = byDay.get(key) || { date: key, pnl: 0, count: 0 };
+      cur.pnl += Number(t.pnl || 0);
+      cur.count += 1;
+      byDay.set(key, cur);
     }
+
+    const daily = Array.from(byDay.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((x) => ({
+        ...x,
+        pnl: Number(x.pnl.toFixed(2)),
+      }));
 
     let run = 0;
     const cumulative = daily.map((x) => {
       run += x.pnl;
-      return { day: x.day, cumPnL: Number(run.toFixed(2)) };
+      return {
+        date: x.date,
+        cumPnL: Number(run.toFixed(2)),
+      };
     });
 
-    return {
-      daily: daily.map((x) => ({ ...x, pnl: Number(x.pnl.toFixed(2)) })),
-      cumulative,
-    };
-  }, [trades, monthCursor]);
+    return { daily, cumulative };
+  }, [trades]);
 
   const openTrade = (t) => {
     setSelectedTrade(t);
+    setEditTrade({
+      id: t.id,
+      symbol: (t.symbol || "").toUpperCase(),
+      direction: t.direction || "LONG",
+      riskPct: t.risk_pct ?? "",
+      session: t.session || "New York AM",
+      entry: t.entry ?? "",
+      exit: t.exit ?? "",
+      pnl: t.pnl ?? "",
+      rr: t.rr ?? "",
+      date: toInputDate(t.date),
+      notes: t.notes || "",
+      screenshot: t.screenshot_url || "",
+    });
     setDrawerOpen(true);
   };
 
   const closeDrawer = () => {
     setDrawerOpen(false);
-    setTimeout(() => setSelectedTrade(null), 260);
+    setTimeout(() => {
+      setSelectedTrade(null);
+      setEditTrade(null);
+    }, 260);
   };
 
   const askDeleteTrade = (id, source = "table") => {
@@ -1097,6 +1132,7 @@ export default function App() {
     const exit = Number(form.exit);
     const riskPct = Number(form.riskPct);
     const manual = form.pnlManual !== "" ? Number(form.pnlManual) : null;
+    const rrManual = form.rrManual !== "" ? Number(form.rrManual) : null;
 
     if (!symbol || !form.date || !Number.isFinite(riskPct)) {
       pushToast("Missing fields", "Symbol, date ve risk% zorunlu.", "error");
@@ -1115,20 +1151,21 @@ export default function App() {
       pnl = Number((diff * Number(pointValue || 1)).toFixed(2));
     }
 
-    const { error } = await supabase.from("trades").insert([
-      {
-        date: form.date,
-        symbol,
-        direction: form.direction,
-        session: form.session,
-        entry: Number.isFinite(entry) ? entry : null,
-        exit: Number.isFinite(exit) ? exit : null,
-        pnl,
-        risk_pct: Number.isFinite(riskPct) ? riskPct : null,
-        notes: (form.notes || "").trim() || null,
-        screenshot_url: (form.screenshot || "").trim() || null,
-      },
-    ]);
+    const payload = {
+      date: form.date,
+      symbol,
+      direction: form.direction,
+      session: form.session,
+      entry: Number.isFinite(entry) ? entry : null,
+      exit: Number.isFinite(exit) ? exit : null,
+      pnl,
+      rr: Number.isFinite(rrManual) ? Number(rrManual.toFixed(2)) : null,
+      risk_pct: Number.isFinite(riskPct) ? riskPct : null,
+      notes: (form.notes || "").trim() || null,
+      screenshot_url: (form.screenshot || "").trim() || null,
+    };
+
+    const { error } = await supabase.from("trades").insert([payload]);
 
     if (error) {
       console.log("SUPABASE INSERT ERROR:", error);
@@ -1144,6 +1181,7 @@ export default function App() {
       entry: "",
       exit: "",
       pnlManual: "",
+      rrManual: "",
       date: "",
       notes: "",
       screenshot: "",
@@ -1151,6 +1189,48 @@ export default function App() {
 
     await fetchTrades();
     pushToast("Trade added", "Yeni trade başarıyla kaydedildi.", "success");
+  };
+
+  const handleUpdateTrade = async () => {
+    if (!editTrade?.id) return;
+
+    const symbol = (editTrade.symbol || "").trim().toUpperCase();
+    const riskPct = safeNum(editTrade.riskPct);
+
+    if (!symbol || !editTrade.date || !Number.isFinite(Number(riskPct))) {
+      pushToast("Missing fields", "Symbol, date ve risk% zorunlu.", "error");
+      return;
+    }
+
+    setSavingTrade(true);
+
+    const payload = {
+      date: editTrade.date,
+      symbol,
+      direction: editTrade.direction,
+      session: editTrade.session,
+      entry: safeNum(editTrade.entry),
+      exit: safeNum(editTrade.exit),
+      pnl: safeNum(editTrade.pnl) ?? 0,
+      rr: safeNum(editTrade.rr),
+      risk_pct: riskPct,
+      notes: (editTrade.notes || "").trim() || null,
+      screenshot_url: (editTrade.screenshot || "").trim() || null,
+    };
+
+    const { error } = await supabase.from("trades").update(payload).eq("id", editTrade.id);
+
+    setSavingTrade(false);
+
+    if (error) {
+      console.log("UPDATE ERROR:", error);
+      pushToast("Update failed", error.message, "error");
+      return;
+    }
+
+    await fetchTrades();
+    setSelectedTrade((prev) => (prev ? { ...prev, ...payload } : prev));
+    pushToast("Trade updated", "Seçili trade başarıyla güncellendi.", "success");
   };
 
   const handleDelete = async (id) => {
@@ -1170,13 +1250,6 @@ export default function App() {
   };
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
-
-  const rangeOptions = [
-    { v: 7, t: "Son 7 gün" },
-    { v: 30, t: "Son 30 gün" },
-    { v: 90, t: "Son 90 gün" },
-    { v: 365, t: "Son 1 yıl" },
-  ];
 
   const symbolOptions = symbols.map((s) => ({ v: s, t: s === "ALL" ? "All symbols" : s }));
 
@@ -1266,13 +1339,6 @@ export default function App() {
                   onChange={(e) => setSymbolFilter(e.target.value)}
                   options={symbolOptions}
                   className="w-[160px]"
-                />
-
-                <Dropdown
-                  value={range}
-                  onChange={(e) => setRange(Number(e.target.value))}
-                  options={rangeOptions}
-                  className="w-[140px]"
                 />
 
                 <button
@@ -1761,7 +1827,7 @@ export default function App() {
                           <div className="text-xs text-zinc-500">Click row → right panel</div>
                         </div>
                         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] text-zinc-300">
-                          Table
+                          All time
                         </span>
                       </div>
 
@@ -1878,8 +1944,8 @@ export default function App() {
                         ) : (
                           <div className="p-5">
                             <EmptyState
-                              title="No trades in this filter"
-                              text="Filtreleri genişlet ya da yeni trade ekle."
+                              title="No trades yet"
+                              text="Yeni trade ekle, liste burada dolsun."
                             />
                           </div>
                         )}
@@ -1910,15 +1976,16 @@ export default function App() {
                       <AnimatedChart delay={40}>
                         <Card>
                           <div className="text-sm text-zinc-200">Daily Net PnL</div>
-                          {calendarCharts.daily.some((x) => x.pnl !== 0) ? (
+                          {allTimeCharts.daily.length ? (
                             <div className="mt-3 h-[220px] w-full">
                               <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={calendarCharts.daily}>
+                                <BarChart data={allTimeCharts.daily}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                                   <XAxis
-                                    dataKey="day"
+                                    dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
-                                    tick={{ fontSize: 12 }}
+                                    tick={{ fontSize: 11 }}
+                                    minTickGap={28}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
@@ -1931,7 +1998,7 @@ export default function App() {
                                     }}
                                   />
                                   <Bar dataKey="pnl">
-                                    {(calendarCharts.daily || []).map((x, i) => (
+                                    {(allTimeCharts.daily || []).map((x, i) => (
                                       <Cell
                                         key={i}
                                         fill={
@@ -1952,7 +2019,7 @@ export default function App() {
                               <EmptyState
                                 compact
                                 title="No daily PnL"
-                                text="Seçili ayda henüz hareket yok."
+                                text="Trade geldikçe günlük PnL burada görünür."
                               />
                             </div>
                           )}
@@ -1962,15 +2029,16 @@ export default function App() {
                       <AnimatedChart delay={90}>
                         <Card>
                           <div className="text-sm text-zinc-200">Daily Trade Count</div>
-                          {calendarCharts.daily.some((x) => x.count !== 0) ? (
+                          {allTimeCharts.daily.length ? (
                             <div className="mt-3 h-[220px] w-full">
                               <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={calendarCharts.daily}>
+                                <BarChart data={allTimeCharts.daily}>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                                   <XAxis
-                                    dataKey="day"
+                                    dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
-                                    tick={{ fontSize: 12 }}
+                                    tick={{ fontSize: 11 }}
+                                    minTickGap={28}
                                   />
                                   <YAxis
                                     stroke="rgba(255,255,255,0.45)"
@@ -1994,7 +2062,7 @@ export default function App() {
                               <EmptyState
                                 compact
                                 title="No trade count"
-                                text="Bu ay için işlem sayısı henüz oluşmadı."
+                                text="Trade sayısı burada otomatik görünür."
                               />
                             </div>
                           )}
@@ -2003,11 +2071,11 @@ export default function App() {
 
                       <AnimatedChart delay={140}>
                         <Card>
-                          <div className="text-sm text-zinc-200">Cumulative PnL (MTD)</div>
-                          {calendarCharts.cumulative.some((x) => x.cumPnL !== 0) ? (
+                          <div className="text-sm text-zinc-200">Cumulative PnL</div>
+                          {allTimeCharts.cumulative.length ? (
                             <div className="mt-3 h-[220px] w-full">
                               <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={calendarCharts.cumulative}>
+                                <AreaChart data={allTimeCharts.cumulative}>
                                   <defs>
                                     <linearGradient id="cumFill" x1="0" y1="0" x2="0" y2="1">
                                       <stop offset="0%" stopColor="rgba(168,85,247,0.55)" />
@@ -2016,9 +2084,10 @@ export default function App() {
                                   </defs>
                                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                                   <XAxis
-                                    dataKey="day"
+                                    dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
-                                    tick={{ fontSize: 12 }}
+                                    tick={{ fontSize: 11 }}
+                                    minTickGap={28}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
@@ -2046,7 +2115,7 @@ export default function App() {
                               <EmptyState
                                 compact
                                 title="No cumulative curve"
-                                text="PnL akışı geldiğinde grafik burada yükselecek."
+                                text="Trade geldikçe toplam PnL eğrisi burada oluşur."
                               />
                             </div>
                           )}
@@ -2136,7 +2205,7 @@ export default function App() {
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
               <div>
                 <div className="text-sm font-medium text-zinc-200">Trade Detail</div>
-                <div className="text-xs text-zinc-500">Right drawer</div>
+                <div className="text-xs text-zinc-500">Click row → edit here</div>
               </div>
 
               <button
@@ -2149,7 +2218,7 @@ export default function App() {
             </div>
 
             <div className="flex-1 overflow-auto p-5">
-              {!selectedTrade ? (
+              {!selectedTrade || !editTrade ? (
                 <div className="text-sm text-zinc-400">No selection.</div>
               ) : (
                 <div
@@ -2159,50 +2228,95 @@ export default function App() {
                   )}
                 >
                   <div className="grid grid-cols-2 gap-3">
-                    <Info label="Symbol" value={(selectedTrade.symbol || "").toUpperCase()} />
-                    <Info label="Direction" value={selectedTrade.direction} />
-                    <Info label="Date" value={selectedTrade.date} />
-                    <Info
-                      label="Risk %"
-                      value={
-                        selectedTrade.risk_pct !== undefined &&
-                        selectedTrade.risk_pct !== null &&
-                        selectedTrade.risk_pct !== ""
-                          ? `${selectedTrade.risk_pct}%`
-                          : "—"
-                      }
+                    <Input
+                      label="Symbol"
+                      value={editTrade.symbol}
+                      onChange={(e) => setEditTrade({ ...editTrade, symbol: e.target.value })}
                     />
-                    <Info label="Session" value={selectedTrade.session ? selectedTrade.session : "—"} />
-                    <Info label="Entry" value={String(selectedTrade.entry ?? "—")} />
-                    <Info label="Exit" value={String(selectedTrade.exit ?? "—")} />
-                    <Info label="RR" value={fmt(tradeRR(selectedTrade))} />
+                    <Select
+                      label="Direction"
+                      value={editTrade.direction}
+                      onChange={(e) => setEditTrade({ ...editTrade, direction: e.target.value })}
+                      options={[
+                        { v: "LONG", t: "LONG" },
+                        { v: "SHORT", t: "SHORT" },
+                      ]}
+                    />
+                    <Input
+                      label="Date"
+                      type="date"
+                      value={editTrade.date}
+                      onChange={(e) => setEditTrade({ ...editTrade, date: e.target.value })}
+                    />
+                    <Input
+                      label="Risk %"
+                      type="number"
+                      step="0.1"
+                      value={editTrade.riskPct}
+                      onChange={(e) => setEditTrade({ ...editTrade, riskPct: e.target.value })}
+                    />
+                    <Select
+                      label="Session"
+                      value={editTrade.session}
+                      onChange={(e) => setEditTrade({ ...editTrade, session: e.target.value })}
+                      options={SESSION_OPTIONS}
+                    />
+                    <Input
+                      label="Manual RR"
+                      type="number"
+                      step="0.01"
+                      value={editTrade.rr}
+                      onChange={(e) => setEditTrade({ ...editTrade, rr: e.target.value })}
+                    />
+                    <Input
+                      label="Entry"
+                      type="number"
+                      value={editTrade.entry}
+                      onChange={(e) => setEditTrade({ ...editTrade, entry: e.target.value })}
+                    />
+                    <Input
+                      label="Exit"
+                      type="number"
+                      value={editTrade.exit}
+                      onChange={(e) => setEditTrade({ ...editTrade, exit: e.target.value })}
+                    />
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-zinc-400">PnL</div>
-                    <div
-                      className={cn(
-                        "mt-1 text-2xl font-semibold",
-                        Number(selectedTrade.pnl) >= 0 ? "text-emerald-300" : "text-red-300"
-                      )}
-                    >
-                      {money(selectedTrade.pnl)}
+                    <div className="grid grid-cols-1 gap-3">
+                      <Input
+                        label="Manual PnL ($)"
+                        type="number"
+                        step="0.01"
+                        value={editTrade.pnl}
+                        onChange={(e) => setEditTrade({ ...editTrade, pnl: e.target.value })}
+                      />
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-xs text-zinc-400">Notes</div>
-                    <div className="mt-2 whitespace-pre-wrap text-sm text-zinc-200">
-                      {(selectedTrade.notes || "").trim() || "—"}
-                    </div>
-                  </div>
+                  <Input
+                    label="Screenshot URL"
+                    value={editTrade.screenshot}
+                    onChange={(e) => setEditTrade({ ...editTrade, screenshot: e.target.value })}
+                    placeholder="https://..."
+                  />
+
+                  <label className="block">
+                    <div className="mb-1 text-xs text-zinc-400">Notes</div>
+                    <textarea
+                      value={editTrade.notes}
+                      onChange={(e) => setEditTrade({ ...editTrade, notes: e.target.value })}
+                      rows={6}
+                      className="w-full resize-none rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 transition focus:ring-2 focus:ring-purple-500/40"
+                    />
+                  </label>
 
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center justify-between">
-                      <div className="text-xs text-zinc-400">Screenshot</div>
-                      {selectedTrade.screenshot_url ? (
+                      <div className="text-xs text-zinc-400">Screenshot Preview</div>
+                      {editTrade.screenshot ? (
                         <a
-                          href={selectedTrade.screenshot_url}
+                          href={editTrade.screenshot}
                           target="_blank"
                           rel="noreferrer"
                           className="text-xs text-purple-300 hover:underline"
@@ -2212,10 +2326,10 @@ export default function App() {
                       ) : null}
                     </div>
 
-                    {selectedTrade.screenshot_url ? (
+                    {editTrade.screenshot ? (
                       <div className="mt-3 overflow-hidden rounded-xl border border-white/10">
                         <img
-                          src={selectedTrade.screenshot_url}
+                          src={editTrade.screenshot}
                           alt="screenshot"
                           className="max-h-[360px] w-full bg-black/30 object-contain"
                           onError={(e) => {
@@ -2228,13 +2342,30 @@ export default function App() {
                     )}
                   </div>
 
-                  <div className="flex justify-end">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Info label="Current RR" value={fmt(safeNum(editTrade.rr) ?? 0)} />
+                    <Info
+                      label="Current PnL"
+                      value={money(safeNum(editTrade.pnl) ?? 0)}
+                    />
+                  </div>
+
+                  <div className="flex justify-between gap-2">
                     <button
                       type="button"
                       className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200 transition hover:bg-red-500/20 active:scale-[0.98]"
                       onClick={() => askDeleteTrade(selectedTrade.id, "drawer")}
                     >
                       Delete trade
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={savingTrade}
+                      className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                      onClick={handleUpdateTrade}
+                    >
+                      {savingTrade ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </div>
