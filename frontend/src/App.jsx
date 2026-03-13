@@ -1218,7 +1218,12 @@ export default function App() {
       screenshot_url: (editTrade.screenshot || "").trim() || null,
     };
 
-    const { error } = await supabase.from("trades").update(payload).eq("id", editTrade.id);
+    const { data, error } = await supabase
+      .from("trades")
+      .update(payload)
+      .eq("id", editTrade.id)
+      .select()
+      .single();
 
     setSavingTrade(false);
 
@@ -1228,8 +1233,33 @@ export default function App() {
       return;
     }
 
+    if (!data) {
+      pushToast(
+        "Update failed",
+        "Kayıt güncellenmedi. Policy ya da eşleşen satır sorunu olabilir.",
+        "error"
+      );
+      return;
+    }
+
     await fetchTrades();
-    setSelectedTrade((prev) => (prev ? { ...prev, ...payload } : prev));
+
+    setSelectedTrade(data);
+    setEditTrade({
+      id: data.id,
+      symbol: (data.symbol || "").toUpperCase(),
+      direction: data.direction || "LONG",
+      riskPct: data.risk_pct ?? "",
+      session: data.session || "New York AM",
+      entry: data.entry ?? "",
+      exit: data.exit ?? "",
+      pnl: data.pnl ?? "",
+      rr: data.rr ?? "",
+      date: toInputDate(data.date),
+      notes: data.notes || "",
+      screenshot: data.screenshot_url || "",
+    });
+
     pushToast("Trade updated", "Seçili trade başarıyla güncellendi.", "success");
   };
 
@@ -2344,10 +2374,7 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <Info label="Current RR" value={fmt(safeNum(editTrade.rr) ?? 0)} />
-                    <Info
-                      label="Current PnL"
-                      value={money(safeNum(editTrade.pnl) ?? 0)}
-                    />
+                    <Info label="Current PnL" value={money(safeNum(editTrade.pnl) ?? 0)} />
                   </div>
 
                   <div className="flex justify-between gap-2">
