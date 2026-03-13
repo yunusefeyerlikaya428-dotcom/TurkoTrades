@@ -1223,7 +1223,7 @@ export default function App() {
       .update(payload)
       .eq("id", editTrade.id)
       .select()
-      .single();
+      .maybeSingle();
 
     setSavingTrade(false);
 
