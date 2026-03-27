@@ -98,6 +98,54 @@ const SESSION_OPTIONS = [
   { v: "Asia", t: "Asia" },
 ];
 
+const THEMES = {
+  dark: {
+    page: "bg-[#0b0f14] text-zinc-100",
+    sidebar: "border-white/10 bg-[#0b0f14]/85",
+    topbar: "border-white/10 bg-[#121821]/70",
+    soft: "border-white/10 bg-white/5",
+    input: "border-white/10 bg-[#0b1220]/70 text-zinc-100 placeholder:text-zinc-500",
+    text: "text-zinc-100",
+    text2: "text-zinc-200",
+    muted: "text-zinc-400",
+    muted2: "text-zinc-500",
+    positive: "text-emerald-300",
+    negative: "text-red-300",
+    accentBtn: "from-blue-500 to-cyan-500",
+    ring: "focus:ring-blue-500/40",
+  },
+  purple: {
+    page: "bg-zinc-950 text-zinc-100",
+    sidebar: "border-white/10 bg-zinc-950/55",
+    topbar: "border-white/10 bg-zinc-900/45",
+    soft: "border-white/10 bg-white/5",
+    input: "border-white/10 bg-zinc-950/40 text-zinc-100 placeholder:text-zinc-600",
+    text: "text-zinc-100",
+    text2: "text-zinc-200",
+    muted: "text-zinc-400",
+    muted2: "text-zinc-500",
+    positive: "text-emerald-300",
+    negative: "text-red-300",
+    accentBtn: "from-purple-500 to-pink-500",
+    ring: "focus:ring-purple-500/40",
+  },
+  light: {
+    page: "bg-[#f5f7fb] text-zinc-900",
+    sidebar: "border-zinc-200 bg-white/95",
+    topbar: "border-zinc-200 bg-white/90",
+    soft: "border-zinc-200 bg-zinc-100",
+    input: "border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400",
+    text: "text-zinc-900",
+    text2: "text-zinc-800",
+    muted: "text-zinc-600",
+    muted2: "text-zinc-500",
+    positive: "text-emerald-600",
+    negative: "text-red-600",
+    accentBtn: "from-blue-500 to-indigo-500",
+    ring: "focus:ring-blue-500/30",
+  },
+};
+
 /* =========================
    FLOATING LAYER
    ========================= */
@@ -747,64 +795,6 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
 }
 
 export default function App() {
-
-  const THEMES = {
-    dark: {
-      page: "bg-[#0b0f14] text-zinc-100",
-      sidebar: "bg-[#0b0f14]/80 border-white/10",
-      card: "bg-[#121821]/70 border-white/10",
-      cardHover: "hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(59,130,246,0.22)]",
-      panel: "bg-[#0f1722]/80 border-white/10",
-      soft: "bg-white/5",
-      softHover: "hover:bg-white/10",
-      input: "bg-[#0b1220]/70 border-white/10 text-zinc-100 placeholder:text-zinc-500",
-      text: "text-zinc-100",
-      text2: "text-zinc-200",
-      muted: "text-zinc-400",
-      muted2: "text-zinc-500",
-      positive: "text-emerald-300",
-      negative: "text-red-300",
-      accentBtn: "from-blue-500 to-cyan-500",
-      ring: "focus:ring-blue-500/40",
-    },
-    purple: {
-      page: "bg-zinc-950 text-zinc-100",
-      sidebar: "bg-zinc-950/55 border-white/10",
-      card: "bg-zinc-900/45 border-white/10",
-      cardHover: "hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]",
-      panel: "bg-zinc-950/70 border-white/10",
-      soft: "bg-white/5",
-      softHover: "hover:bg-white/10",
-      input: "bg-zinc-950/40 border-white/10 text-zinc-100 placeholder:text-zinc-600",
-      text: "text-zinc-100",
-      text2: "text-zinc-200",
-      muted: "text-zinc-400",
-      muted2: "text-zinc-500",
-      positive: "text-emerald-300",
-      negative: "text-red-300",
-      accentBtn: "from-purple-500 to-pink-500",
-      ring: "focus:ring-purple-500/40",
-    },
-    light: {
-      page: "bg-[#f5f7fb] text-zinc-900",
-      sidebar: "bg-white/90 border-zinc-200",
-      card: "bg-white/90 border-zinc-200",
-      cardHover: "hover:border-zinc-300 hover:shadow-[0_18px_50px_-22px_rgba(0,0,0,0.16)]",
-      panel: "bg-white/95 border-zinc-200",
-      soft: "bg-zinc-100",
-      softHover: "hover:bg-zinc-200/70",
-      input: "bg-white border-zinc-300 text-zinc-900 placeholder:text-zinc-400",
-      text: "text-zinc-900",
-      text2: "text-zinc-800",
-      muted: "text-zinc-600",
-      muted2: "text-zinc-500",
-      positive: "text-emerald-600",
-      negative: "text-red-600",
-      accentBtn: "from-blue-500 to-indigo-500",
-      ring: "focus:ring-blue-500/30",
-    },
-  };
-
   const [themeName, setThemeName] = useState(() => {
     return localStorage.getItem("tt_theme") || "purple";
   });
@@ -1365,15 +1355,31 @@ export default function App() {
   return (
     <div className={cn("min-h-screen transition-colors duration-300", theme.page)}>
       <div className="pointer-events-none fixed inset-0">
-        <div className="absolute -top-48 -left-48 h-[520px] w-[520px] rounded-full bg-purple-700/40 blur-[140px]" />
-        <div className="absolute top-0 right-0 h-[520px] w-[520px] rounded-full bg-fuchsia-600/30 blur-[150px]" />
-        <div className="absolute bottom-0 left-1/3 h-[520px] w-[520px] rounded-full bg-indigo-600/20 blur-[160px]" />
+        <div
+          className={cn(
+            "absolute -top-48 -left-48 h-[520px] w-[520px] rounded-full blur-[140px] transition-opacity duration-300",
+            themeName === "light" ? "bg-blue-200/40 opacity-60" : "bg-purple-700/40 opacity-100"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute top-0 right-0 h-[520px] w-[520px] rounded-full blur-[150px] transition-opacity duration-300",
+            themeName === "light" ? "bg-indigo-200/35 opacity-60" : "bg-fuchsia-600/30 opacity-100"
+          )}
+        />
+        <div
+          className={cn(
+            "absolute bottom-0 left-1/3 h-[520px] w-[520px] rounded-full blur-[160px] transition-opacity duration-300",
+            themeName === "light" ? "bg-cyan-200/30 opacity-60" : "bg-indigo-600/20 opacity-100"
+          )}
+        />
       </div>
 
       <div className="relative flex min-h-screen">
         <aside
           className={cn(
-            "relative sticky top-0 flex h-screen flex-col border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl transition-all duration-300 ease-in-out",
+            "relative sticky top-0 flex h-screen flex-col border-r py-4 backdrop-blur-xl transition-all duration-300 ease-in-out",
+            theme.sidebar,
             sidebarOpen ? "w-[220px] px-3" : "w-[84px] items-center px-2"
           )}
         >
@@ -1398,15 +1404,19 @@ export default function App() {
                     : "max-w-0 -translate-x-2 overflow-hidden opacity-0"
                 )}
               >
-                <div className="text-sm font-semibold text-zinc-100">TurkoTrades</div>
-                <div className="text-[11px] text-zinc-500">Journal</div>
+                <div className={cn("text-sm font-semibold", theme.text)}>TurkoTrades</div>
+                <div className={cn("text-[11px]", theme.muted2)}>Journal</div>
               </div>
             </div>
 
             <button
               type="button"
               onClick={() => setSidebarOpen((v) => !v)}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/10 active:scale-[0.98]"
+              className={cn(
+                "rounded-xl border px-3 py-2 text-sm transition active:scale-[0.98]",
+                theme.soft,
+                theme.text
+              )}
               title={sidebarOpen ? "Collapse" : "Expand"}
             >
               {sidebarOpen ? "←" : "→"}
@@ -1453,7 +1463,8 @@ export default function App() {
 
           <div
             className={cn(
-              "mt-auto rounded-2xl border border-white/10 bg-white/5 transition-all duration-300",
+              "mt-auto rounded-2xl border transition-all duration-300",
+              theme.soft,
               sidebarOpen ? "p-3" : "p-2"
             )}
           >
@@ -1465,8 +1476,8 @@ export default function App() {
                   sidebarOpen ? "max-w-[120px] opacity-100" : "max-w-0 overflow-hidden opacity-0"
                 )}
               >
-                <div className="text-xs font-medium text-zinc-200">Supabase</div>
-                <div className="text-[10px] text-zinc-500">connected</div>
+                <div className={cn("text-xs font-medium", theme.text2)}>Supabase</div>
+                <div className={cn("text-[10px]", theme.muted2)}>connected</div>
               </div>
             </div>
           </div>
@@ -1474,36 +1485,41 @@ export default function App() {
 
         <main className="flex-1">
           <div className="mx-auto max-w-7xl px-6 py-6">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-zinc-900/45 px-4 py-3 backdrop-blur">
+            <div
+              className={cn(
+                "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-4 py-3 backdrop-blur transition-colors duration-300",
+                theme.topbar
+              )}
+            >
               <div className="flex items-center gap-3">
                 <img src="/logo.png" alt="TurkoTrades" className="h-10 w-auto object-contain md:h-12" />
 
-                <div className="text-xs text-zinc-500">
-                  Net: <span className="text-zinc-300">{money(stats.total)}</span> • Balance:{" "}
-                  <span className="text-zinc-300">{money(balance)}</span> • Return:{" "}
+                <div className={cn("text-xs", theme.muted2)}>
+                  Net: <span className={theme.text2}>{money(stats.total)}</span> • Balance:{" "}
+                  <span className={theme.text2}>{money(balance)}</span> • Return:{" "}
                   <span
                     className={cn(
                       "font-medium",
-                      returnPct >= 0 ? "text-emerald-300" : "text-red-300"
+                      returnPct >= 0 ? theme.positive : theme.negative
                     )}
                   >
                     {fmt(returnPct)}%
                   </span>{" "}
-                  • <span className="text-zinc-400">{stats.count} trade</span> • Avg RR:{" "}
-                  <span className="text-zinc-300">{fmt(stats.avgRR)}</span>
+                  • <span className={theme.muted}>{stats.count} trade</span> • Avg RR:{" "}
+                  <span className={theme.text2}>{fmt(stats.avgRR)}</span>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                <div className={cn("flex items-center gap-2 rounded-xl border px-3 py-2", theme.soft)}>
                   <input
                     value={accountSize}
                     onChange={(e) => setAccountSize(Number(e.target.value))}
                     type="number"
-                    className="w-24 bg-transparent text-sm outline-none placeholder:text-zinc-600"
+                    className={cn("w-24 bg-transparent text-sm outline-none", theme.text)}
                     placeholder="10000"
                   />
-                  <span className="text-xs text-zinc-500">Start</span>
+                  <span className={cn("text-xs", theme.muted2)}>Start</span>
                 </div>
 
                 <Dropdown
@@ -1516,7 +1532,11 @@ export default function App() {
                 <button
                   type="button"
                   onClick={fetchTrades}
-                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10 active:scale-[0.98]"
+                  className={cn(
+                    "rounded-xl border px-3 py-2 text-sm transition active:scale-[0.98]",
+                    theme.soft,
+                    theme.text
+                  )}
                 >
                   Refresh
                 </button>
@@ -2311,62 +2331,91 @@ export default function App() {
                 <>
                   <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
                     <Card>
-                      <div className="text-sm text-zinc-200">Settings</div>
+                      <div className={cn("text-sm", theme.text2)}>Settings</div>
 
                       <div className="mt-4 space-y-3">
                         <label className="block">
-                          <div className="mb-1 text-xs text-zinc-400">Starting Balance</div>
+                          <div className={cn("mb-1 text-xs", theme.muted)}>Starting Balance</div>
                           <input
                             value={accountSize}
                             onChange={(e) => setAccountSize(Number(e.target.value))}
                             type="number"
-                            className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-500/40"
+                            className={cn(
+                              "w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:ring-2",
+                              theme.input,
+                              theme.ring
+                            )}
                           />
                         </label>
 
                         <label className="block">
-                          <div className="mb-1 text-xs text-zinc-400">Point Value (Auto PnL)</div>
+                          <div className={cn("mb-1 text-xs", theme.muted)}>Point Value (Auto PnL)</div>
                           <input
                             value={pointValue}
                             onChange={(e) => setPointValue(Number(e.target.value))}
                             type="number"
                             step="0.01"
-                            className="w-full rounded-xl border border-white/10 bg-zinc-950/40 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-purple-500/40"
+                            className={cn(
+                              "w-full rounded-xl border px-3 py-2 text-sm outline-none transition focus:ring-2",
+                              theme.input,
+                              theme.ring
+                            )}
                           />
-                          <div className="mt-1 text-[11px] text-zinc-500">
+                          <div className={cn("mt-1 text-[11px]", theme.muted2)}>
                             Auto PnL: (Exit-Entry) × Point Value
                           </div>
                         </label>
 
-                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-                          Avg RR: <span className="text-zinc-200">{fmt(stats.avgRR)}</span> • PF:{" "}
-                          <span className="text-zinc-200">{stats.pf >= 999 ? "∞" : fmt(stats.pf)}</span>
+                        <div className={cn("rounded-xl border p-3 text-xs", theme.soft, theme.text2)}>
+                          Avg RR: <span className={theme.text}>{fmt(stats.avgRR)}</span> • PF:{" "}
+                          <span className={theme.text}>{stats.pf >= 999 ? "∞" : fmt(stats.pf)}</span>
                         </div>
                       </div>
                     </Card>
 
                     <Card>
-                      <div className="text-sm text-zinc-200">Workspace</div>
+                      <div className={cn("text-sm", theme.text2)}>Workspace</div>
 
                       <div className="mt-4 space-y-3">
-                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                          <div className="text-xs text-zinc-400">Sidebar</div>
+                        <div className={cn("rounded-xl border p-3", theme.soft)}>
+                          <div className={cn("text-xs", theme.muted)}>Sidebar</div>
                           <div className="mt-2 flex items-center justify-between">
-                            <span className="text-sm text-zinc-200">
+                            <span className={cn("text-sm", theme.text2)}>
                               {sidebarOpen ? "Expanded" : "Collapsed"}
                             </span>
                             <button
                               type="button"
                               onClick={() => setSidebarOpen((v) => !v)}
-                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-200 transition hover:bg-white/10 active:scale-[0.98]"
+                              className={cn(
+                                "rounded-xl border px-3 py-2 text-xs transition active:scale-[0.98]",
+                                theme.soft,
+                                theme.text
+                              )}
                             >
                               Toggle
                             </button>
                           </div>
                         </div>
 
-                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
-                          Bu alanı sonra theme selector + account selector için genişletiriz.
+                        <div className={cn("rounded-xl border p-3", theme.soft)}>
+                          <div className={cn("text-xs", theme.muted)}>Theme</div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {["dark", "purple", "light"].map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => setThemeName(t)}
+                                className={cn(
+                                  "rounded-xl border px-3 py-2 text-xs capitalize transition active:scale-[0.98]",
+                                  themeName === t
+                                    ? "border-white/30 bg-white/15 text-zinc-100"
+                                    : cn(theme.soft, theme.text)
+                                )}
+                              >
+                                {t}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </Card>
@@ -2553,7 +2602,10 @@ export default function App() {
                     <button
                       type="button"
                       disabled={savingTrade}
-                      className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-pink-500/10 transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
+                      className={cn(
+                        "rounded-xl bg-gradient-to-r px-4 py-2 text-sm font-medium text-white shadow-lg transition hover:opacity-95 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70",
+                        theme.accentBtn
+                      )}
                       onClick={handleUpdateTrade}
                     >
                       {savingTrade ? "Saving..." : "Save Changes"}
