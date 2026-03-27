@@ -78,6 +78,17 @@ function safeNum(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
+function chartDateTick(value) {
+  if (!value) return "";
+  if (typeof value === "string" && value.length >= 10) return value.slice(5);
+  return value;
+}
+function shortNote(text, max = 32) {
+  const s = (text || "").trim();
+  if (!s) return "—";
+  if (s.length <= max) return s;
+  return `${s.slice(0, max).trim()}...`;
+}
 
 const SESSION_OPTIONS = [
   { v: "New York AM", t: "New York AM" },
@@ -754,6 +765,7 @@ export default function App() {
   const [editTrade, setEditTrade] = useState(null);
   const [savingTrade, setSavingTrade] = useState(false);
   const [activeNav, setActiveNav] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const [confirmDelete, setConfirmDelete] = useState({
     open: false,
@@ -1280,7 +1292,6 @@ export default function App() {
   };
 
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
-
   const symbolOptions = symbols.map((s) => ({ v: s, t: s === "ALL" ? "All symbols" : s }));
 
   return (
@@ -1292,41 +1303,104 @@ export default function App() {
       </div>
 
       <div className="relative flex min-h-screen">
-        <aside className="relative sticky top-0 flex h-screen w-[78px] flex-col items-center gap-3 border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl">
+        <aside
+          className={cn(
+            "relative sticky top-0 flex h-screen flex-col border-r border-white/10 bg-zinc-950/55 py-4 backdrop-blur-xl transition-all duration-300 ease-in-out",
+            sidebarOpen ? "w-[220px] px-3" : "w-[84px] items-center px-2"
+          )}
+        >
           <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500/0 via-purple-500/30 to-purple-500/0" />
 
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_35px_rgba(168,85,247,0.12)]">
-            <img src="/logo-icon.png" alt="TurkoTrades" className="h-9 w-9 object-contain" />
+          <div
+            className={cn(
+              "mb-3 flex items-center",
+              sidebarOpen ? "justify-between gap-3 px-1" : "justify-center"
+            )}
+          >
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_35px_rgba(168,85,247,0.12)]">
+                <img src="/logo-icon.png" alt="TurkoTrades" className="h-9 w-9 object-contain" />
+              </div>
+
+              <div
+                className={cn(
+                  "transition-all duration-300",
+                  sidebarOpen
+                    ? "max-w-[120px] translate-x-0 opacity-100"
+                    : "max-w-0 -translate-x-2 overflow-hidden opacity-0"
+                )}
+              >
+                <div className="text-sm font-semibold text-zinc-100">TurkoTrades</div>
+                <div className="text-[11px] text-zinc-500">Journal</div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSidebarOpen((v) => !v)}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-zinc-300 transition hover:bg-white/10 active:scale-[0.98]"
+              title={sidebarOpen ? "Collapse" : "Expand"}
+            >
+              {sidebarOpen ? "←" : "→"}
+            </button>
           </div>
 
-          <NavIcon
-            active={activeNav === "dashboard"}
-            onClick={() => setActiveNav("dashboard")}
-            label="Dashboard"
-          >
-            ⌂
-          </NavIcon>
-          <NavIcon active={activeNav === "trades"} onClick={() => setActiveNav("trades")} label="Trades">
-            ≡
-          </NavIcon>
-          <NavIcon
-            active={activeNav === "calendar"}
-            onClick={() => setActiveNav("calendar")}
-            label="Calendar"
-          >
-            ▦
-          </NavIcon>
-          <NavIcon
-            active={activeNav === "settings"}
-            onClick={() => setActiveNav("settings")}
-            label="Settings"
-          >
-            ⚙
-          </NavIcon>
+          <div className="flex flex-col gap-2">
+            <NavIcon
+              active={activeNav === "dashboard"}
+              onClick={() => setActiveNav("dashboard")}
+              label="Dashboard"
+              expanded={sidebarOpen}
+            >
+              ⌂
+            </NavIcon>
 
-          <div className="mt-auto flex flex-col items-center gap-2">
-            <div className="h-10 w-10 rounded-full border border-white/10 bg-white/5" />
-            <div className="text-[10px] text-zinc-500">supabase</div>
+            <NavIcon
+              active={activeNav === "trades"}
+              onClick={() => setActiveNav("trades")}
+              label="Trades"
+              expanded={sidebarOpen}
+            >
+              ≡
+            </NavIcon>
+
+            <NavIcon
+              active={activeNav === "calendar"}
+              onClick={() => setActiveNav("calendar")}
+              label="Calendar"
+              expanded={sidebarOpen}
+            >
+              ▦
+            </NavIcon>
+
+            <NavIcon
+              active={activeNav === "settings"}
+              onClick={() => setActiveNav("settings")}
+              label="Settings"
+              expanded={sidebarOpen}
+            >
+              ⚙
+            </NavIcon>
+          </div>
+
+          <div
+            className={cn(
+              "mt-auto rounded-2xl border border-white/10 bg-white/5 transition-all duration-300",
+              sidebarOpen ? "p-3" : "p-2"
+            )}
+          >
+            <div className={cn("flex items-center gap-3", sidebarOpen ? "" : "justify-center")}>
+              <div className="h-10 w-10 shrink-0 rounded-full border border-white/10 bg-white/5" />
+              <div
+                className={cn(
+                  "transition-all duration-300",
+                  sidebarOpen ? "max-w-[120px] opacity-100" : "max-w-0 overflow-hidden opacity-0"
+                )}
+              >
+                <div className="text-xs font-medium text-zinc-200">Supabase</div>
+                <div className="text-[10px] text-zinc-500">connected</div>
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -1450,6 +1524,8 @@ export default function App() {
                                     dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
                                     tick={{ fontSize: 12 }}
+                                    tickFormatter={chartDateTick}
+                                    minTickGap={36}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <Tooltip
@@ -1615,7 +1691,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                      <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
                         {filtered.length ? (
                           <table className="w-full text-left text-sm">
                             <thead className="bg-white/5 text-zinc-300">
@@ -1660,8 +1736,8 @@ export default function App() {
                                     </td>
                                     <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
                                     <td className="px-4 py-3">
-                                      <div className="max-w-[420px] truncate text-zinc-300">
-                                        {(t.notes || "").trim() || "—"}
+                                      <div className="max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-zinc-400">
+                                        {shortNote(t.notes, 30)}
                                       </div>
                                     </td>
                                   </tr>
@@ -1738,6 +1814,8 @@ export default function App() {
                                     dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
                                     tick={{ fontSize: 12 }}
+                                    tickFormatter={chartDateTick}
+                                    minTickGap={36}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <Tooltip
@@ -1861,7 +1939,7 @@ export default function App() {
                         </span>
                       </div>
 
-                      <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                      <div className="mt-4 overflow-x-auto rounded-2xl border border-white/10">
                         {filtered.length ? (
                           <table className="w-full text-left text-sm">
                             <thead className="bg-white/5 text-zinc-300">
@@ -1934,8 +2012,8 @@ export default function App() {
                                     <td className="px-4 py-3 text-zinc-300">{fmt(tradeRR(t))}</td>
 
                                     <td className="px-4 py-3">
-                                      <div className="max-w-[220px] truncate text-zinc-300">
-                                        {(t.notes || "").trim() || "—"}
+                                      <div className="max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-zinc-400">
+                                        {shortNote(t.notes, 26)}
                                       </div>
                                     </td>
 
@@ -2015,7 +2093,8 @@ export default function App() {
                                     dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
                                     tick={{ fontSize: 11 }}
-                                    minTickGap={28}
+                                    tickFormatter={chartDateTick}
+                                    minTickGap={36}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
@@ -2068,7 +2147,8 @@ export default function App() {
                                     dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
                                     tick={{ fontSize: 11 }}
-                                    minTickGap={28}
+                                    tickFormatter={chartDateTick}
+                                    minTickGap={36}
                                   />
                                   <YAxis
                                     stroke="rgba(255,255,255,0.45)"
@@ -2117,7 +2197,8 @@ export default function App() {
                                     dataKey="date"
                                     stroke="rgba(255,255,255,0.45)"
                                     tick={{ fontSize: 11 }}
-                                    minTickGap={28}
+                                    tickFormatter={chartDateTick}
+                                    minTickGap={36}
                                   />
                                   <YAxis stroke="rgba(255,255,255,0.45)" tick={{ fontSize: 12 }} />
                                   <ReferenceLine y={0} stroke="rgba(255,255,255,0.18)" />
@@ -2197,13 +2278,28 @@ export default function App() {
                     </Card>
 
                     <Card>
-                      <div className="text-sm text-zinc-200">Danger Zone</div>
-                      <div className="mt-4">
-                        <EmptyState
-                          compact
-                          title="Reserved area"
-                          text="Buraya ileride export, reset, backup gibi gelişmiş ayarlar koyabiliriz."
-                        />
+                      <div className="text-sm text-zinc-200">Workspace</div>
+
+                      <div className="mt-4 space-y-3">
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                          <div className="text-xs text-zinc-400">Sidebar</div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-sm text-zinc-200">
+                              {sidebarOpen ? "Expanded" : "Collapsed"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSidebarOpen((v) => !v)}
+                              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-zinc-200 transition hover:bg-white/10 active:scale-[0.98]"
+                            >
+                              Toggle
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-zinc-300">
+                          Bu alanı sonra theme selector + account selector için genişletiriz.
+                        </div>
                       </div>
                     </Card>
                   </div>
@@ -2227,7 +2323,7 @@ export default function App() {
 
         <div
           className={cn(
-            "absolute right-0 top-0 h-full w-full max-w-[520px] border-l border-white/10 bg-zinc-950/70 backdrop-blur-xl transition-transform duration-300",
+            "absolute right-0 top-0 h-full w-full max-w-[560px] border-l border-white/10 bg-zinc-950/80 shadow-[-24px_0_60px_-24px_rgba(0,0,0,0.65)] backdrop-blur-xl transition-transform duration-300",
             drawerOpen ? "translate-x-0" : "translate-x-full"
           )}
         >
@@ -2254,7 +2350,7 @@ export default function App() {
                 <div
                   className={cn(
                     "space-y-4 transition-all duration-300",
-                    drawerOpen ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                    drawerOpen ? "translate-x-0 opacity-100" : "translate-x-4 opacity-0"
                   )}
                 >
                   <div className="grid grid-cols-2 gap-3">
@@ -2522,14 +2618,15 @@ function Info({ label, value }) {
   );
 }
 
-function NavIcon({ active, onClick, label, children }) {
+function NavIcon({ active, onClick, label, children, expanded = false }) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
       className={cn(
-        "group relative flex h-11 w-11 items-center justify-center rounded-2xl border text-sm transition duration-300 active:scale-[0.96]",
+        "group relative flex items-center rounded-2xl border text-sm transition-all duration-300 active:scale-[0.96]",
+        expanded ? "h-12 w-full justify-start gap-3 px-3" : "h-11 w-11 justify-center self-center",
         active
           ? "border-white/20 bg-white/10 shadow-[0_0_0_1px_rgba(168,85,247,0.25),0_10px_30px_-10px_rgba(168,85,247,0.45)]"
           : "border-white/10 bg-white/5 hover:bg-white/10"
@@ -2537,17 +2634,26 @@ function NavIcon({ active, onClick, label, children }) {
     >
       <span
         className={cn(
-          "absolute -left-[18px] h-6 w-[3px] rounded-full transition-all duration-300",
+          "absolute left-0 h-6 w-[3px] rounded-full transition-all duration-300",
           active ? "bg-purple-400 opacity-100" : "opacity-0"
         )}
       />
       <span
         className={cn(
-          "transition",
+          "shrink-0 transition",
           active ? "text-zinc-100" : "text-zinc-300 group-hover:text-zinc-100"
         )}
       >
         {children}
+      </span>
+
+      <span
+        className={cn(
+          "whitespace-nowrap text-sm transition-all duration-300",
+          expanded ? "max-w-[120px] translate-x-0 opacity-100" : "max-w-0 -translate-x-2 overflow-hidden opacity-0"
+        )}
+      >
+        {label}
       </span>
     </button>
   );
@@ -2577,7 +2683,9 @@ function MiniStat({ title, value, subtitle, series = [], good }) {
 function RingStat({ title, value, label, kind }) {
   const v = Number(value);
   const pct =
-    kind === "wr" ? Math.max(0, Math.min(1, v)) : Math.max(0, Math.min(1, (Number.isFinite(v) ? v : 0) / 3));
+    kind === "wr"
+      ? Math.max(0, Math.min(1, v))
+      : Math.max(0, Math.min(1, (Number.isFinite(v) ? v : 0) / 3));
 
   const r = 18;
   const c = 2 * Math.PI * r;
