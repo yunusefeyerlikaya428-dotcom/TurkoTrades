@@ -747,6 +747,74 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
 }
 
 export default function App() {
+
+  const THEMES = {
+    dark: {
+      page: "bg-[#0b0f14] text-zinc-100",
+      sidebar: "bg-[#0b0f14]/80 border-white/10",
+      card: "bg-[#121821]/70 border-white/10",
+      cardHover: "hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(59,130,246,0.22)]",
+      panel: "bg-[#0f1722]/80 border-white/10",
+      soft: "bg-white/5",
+      softHover: "hover:bg-white/10",
+      input: "bg-[#0b1220]/70 border-white/10 text-zinc-100 placeholder:text-zinc-500",
+      text: "text-zinc-100",
+      text2: "text-zinc-200",
+      muted: "text-zinc-400",
+      muted2: "text-zinc-500",
+      positive: "text-emerald-300",
+      negative: "text-red-300",
+      accentBtn: "from-blue-500 to-cyan-500",
+      ring: "focus:ring-blue-500/40",
+    },
+    purple: {
+      page: "bg-zinc-950 text-zinc-100",
+      sidebar: "bg-zinc-950/55 border-white/10",
+      card: "bg-zinc-900/45 border-white/10",
+      cardHover: "hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]",
+      panel: "bg-zinc-950/70 border-white/10",
+      soft: "bg-white/5",
+      softHover: "hover:bg-white/10",
+      input: "bg-zinc-950/40 border-white/10 text-zinc-100 placeholder:text-zinc-600",
+      text: "text-zinc-100",
+      text2: "text-zinc-200",
+      muted: "text-zinc-400",
+      muted2: "text-zinc-500",
+      positive: "text-emerald-300",
+      negative: "text-red-300",
+      accentBtn: "from-purple-500 to-pink-500",
+      ring: "focus:ring-purple-500/40",
+    },
+    light: {
+      page: "bg-[#f5f7fb] text-zinc-900",
+      sidebar: "bg-white/90 border-zinc-200",
+      card: "bg-white/90 border-zinc-200",
+      cardHover: "hover:border-zinc-300 hover:shadow-[0_18px_50px_-22px_rgba(0,0,0,0.16)]",
+      panel: "bg-white/95 border-zinc-200",
+      soft: "bg-zinc-100",
+      softHover: "hover:bg-zinc-200/70",
+      input: "bg-white border-zinc-300 text-zinc-900 placeholder:text-zinc-400",
+      text: "text-zinc-900",
+      text2: "text-zinc-800",
+      muted: "text-zinc-600",
+      muted2: "text-zinc-500",
+      positive: "text-emerald-600",
+      negative: "text-red-600",
+      accentBtn: "from-blue-500 to-indigo-500",
+      ring: "focus:ring-blue-500/30",
+    },
+  };
+
+  const [themeName, setThemeName] = useState(() => {
+    return localStorage.getItem("tt_theme") || "purple";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("tt_theme", themeName);
+  }, [themeName]);
+
+  const theme = THEMES[themeName] || THEMES.purple;
+
   const [trades, setTrades] = useState([]);
   const [symbolFilter, setSymbolFilter] = useState("ALL");
   const [monthCursor, setMonthCursor] = useState(new Date());
@@ -1295,7 +1363,7 @@ export default function App() {
   const symbolOptions = symbols.map((s) => ({ v: s, t: s === "ALL" ? "All symbols" : s }));
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100">
+    <div className={cn("min-h-screen transition-colors duration-300", theme.page)}>
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -top-48 -left-48 h-[520px] w-[520px] rounded-full bg-purple-700/40 blur-[140px]" />
         <div className="absolute top-0 right-0 h-[520px] w-[520px] rounded-full bg-fuchsia-600/30 blur-[150px]" />
