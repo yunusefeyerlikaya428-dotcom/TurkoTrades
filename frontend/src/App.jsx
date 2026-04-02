@@ -17,6 +17,8 @@ import {
   Cell,
 } from "recharts";
 
+import SplashScreen from "./SplashScreen";
+
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
@@ -796,6 +798,15 @@ function Dropdown({ value, onChange, options, className, buttonClassName, menuCl
 }
 
 export default function App() {
+  const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  const timer = setTimeout(() => {
+    setLoading(false);
+  }, 2500);
+
+  return () => clearTimeout(timer);
+}, []);
   const [themeName, setThemeName] = useState(() => {
     return localStorage.getItem("tt_theme") || "purple";
   });
@@ -1353,6 +1364,10 @@ export default function App() {
   const monthTitle = monthCursor.toLocaleString("tr-TR", { month: "long", year: "numeric" });
   const symbolOptions = symbols.map((s) => ({ v: s, t: s === "ALL" ? "All symbols" : s }));
 
+  if (loading) {
+  return <SplashScreen />;
+}
+  
   return (
     <div className={cn("min-h-screen transition-colors duration-300", theme.page)}>
       <div className="pointer-events-none fixed inset-0">
