@@ -1403,8 +1403,8 @@ useEffect(() => {
 
           <div
             className={cn(
-              "mb-3 flex items-center",
-              sidebarOpen ? "justify-between gap-3 px-1" : "justify-center"
+              "mb-3 flex items-center justify-between gap-3 px-1",
+             
             )}
           >
             <div className="flex items-center gap-3 overflow-hidden">
