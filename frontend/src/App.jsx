@@ -99,6 +99,7 @@ const SESSION_OPTIONS = [
 ];
 
 const THEMES = {
+
   dark: {
     page: "bg-[#0b0f14] text-zinc-100",
     sidebar: "border-white/10 bg-[#0b0f14]/85",
@@ -640,14 +641,14 @@ function NewTradeForm({
             label="Entry"
             value={form.entry}
             onChange={(e) => setForm({ ...form, entry: e.target.value })}
-            placeholder="6788"
+            placeholder=""
             type="number"
           />
           <Input
             label="Exit"
             value={form.exit}
             onChange={(e) => setForm({ ...form, exit: e.target.value })}
-            placeholder="6771"
+            placeholder=""
             type="number"
           />
         </div>
@@ -2780,21 +2781,50 @@ function NavIcon({ active, onClick, label, children, expanded = false }) {
 }
 
 function MiniStat({ title, value, subtitle, series = [], good }) {
-  const data = (series || []).slice(-30).map((v, i) => ({ i, v }));
+  const data = (series || []).slice(-30).map((v, i) => ({ i, v: Number(v || 0) }));
+
+  const chartUp = data.length >= 2 ? data[data.length - 1].v >= data[0].v : good;
+  const stroke = chartUp ? "rgba(34,197,94,0.95)" : "rgba(239,68,68,0.95)";
+  const fillId = chartUp ? "miniStatFillUp" : "miniStatFillDown";
+
   return (
     <div className="rounded-2xl border border-white/10 bg-zinc-900/45 p-5 backdrop-blur transition duration-300 hover:-translate-y-[2px] hover:border-white/15 hover:shadow-[0_18px_50px_-22px_rgba(168,85,247,0.35)]">
       <div className="text-xs text-zinc-400">{title}</div>
+
       <div className={cn("mt-1 text-2xl font-semibold", good ? "text-emerald-200" : "text-red-200")}>
         {value}
       </div>
+
       <div className="mt-1 text-xs text-zinc-500">{subtitle}</div>
 
-      <div className="mt-3 h-16">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data}>
-            <Line type="monotone" dataKey="v" stroke="rgba(168,85,247,0.95)" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+      <div className="mt-4 h-20">
+        {data.length ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={stroke} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
+              <Area
+                type="monotone"
+                dataKey="v"
+                stroke={stroke}
+                strokeWidth={2.4}
+                fill={`url(#${fillId})`}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={true}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center text-[11px] text-zinc-600">
+            No chart data
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2857,10 +2887,17 @@ function BarStat({ title, left, right }) {
 
       <div className="mt-3 space-y-2">
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full bg-emerald-400/70 transition-all duration-500" style={{ width: `${lp}%` }} />
+          <div
+            className="h-full bg-emerald-400/70 transition-all duration-500"
+            style={{ width: `${lp}%` }}
+          />
         </div>
+
         <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full bg-red-400/70 transition-all duration-500" style={{ width: `${rp}%` }} />
+          <div
+            className="h-full bg-red-400/70 transition-all duration-500"
+            style={{ width: `${rp}%` }}
+          />
         </div>
       </div>
     </div>
