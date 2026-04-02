@@ -1,4 +1,12 @@
-/* SPLASH ANIMATION */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+/* SPLASH */
 
 .splash-root {
   position: fixed;
