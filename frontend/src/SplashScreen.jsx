@@ -10,3 +10,5 @@ export default function SplashScreen() {
     </div>
   );
 }
+
+<p className="splash-text">Loading market data...</p>
