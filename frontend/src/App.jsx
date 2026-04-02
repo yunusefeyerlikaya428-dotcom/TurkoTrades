@@ -1394,21 +1394,21 @@ useEffect(() => {
       <div className="relative flex min-h-screen">
         <aside
           className={cn(
-            "relative sticky top-0 flex h-screen flex-col border-r py-4 backdrop-blur-xl transition-all duration-300 ease-in-out",
-            theme.sidebar,
-            sidebarOpen ? "w-[220px] px-3" : "w-[84px] items-center px-2"
-          )}
+  "relative sticky top-0 flex h-screen flex-col border-r py-4 backdrop-blur-xl transition-all duration-300 ease-in-out",
+  theme.sidebar,
+  sidebarOpen ? "w-[220px] px-3" : "w-[84px] px-2"
+)}
         >
-          <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b from-purple-500/0 via-purple-500/30 to-purple-500/0" />
+          <div className="pointer-events-none absolute left-0 top-0 h-full w-[2px] bg-gradient-to-b ... z-0"></div>
 
           <div
             className={cn(
-              "mb-3 flex items-center justify-between gap-3 px-1",
+              "relative z-10 mb-3 flex w-full items-center justify-between gap-3 px-1",
              
             )}
           >
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_35px_rgba(168,85,247,0.12)]">
+            <div className="flex min-w-0 items-center gap-3 overflow-hidden">
+              <div className="ml-[2px] flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-[0_0_35px_rgba(168,85,247,0.12)]">
                 <img src="/logo-icon.png" alt="TurkoTrades" className="h-9 w-9 object-contain" />
               </div>
 
